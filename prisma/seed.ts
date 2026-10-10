@@ -1,6 +1,6 @@
 import 'dotenv/config'
 import { PrismaClient, AssignmentStatus, WorkflowStage, ActivityType, ExpertStatus } from '@prisma/client'
-import { hashPassword } from '../src/passwords.js'
+import { hashPassword } from '../src/security/passwords.js'
 
 // Seeding writes columns the runtime role cannot touch (User.email, Expert rows,
 // ActivityLog inserts), so it must run as the migration owner via DIRECT_URL.

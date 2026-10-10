@@ -1,8 +1,8 @@
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from 'vitest'
 import type { FastifyInstance } from 'fastify'
 import { buildApp } from '../src/app.js'
-import { prisma } from '../src/prisma.js'
-import { hashPassword } from '../src/passwords.js'
+import { prisma } from '../src/db/prisma.js'
+import { hashPassword } from '../src/security/passwords.js'
 
 const PASSWORD = 'Integration-Password-1'
 

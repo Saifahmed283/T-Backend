@@ -1,7 +1,7 @@
 // Proves tenant isolation with a real second workspace over HTTP.
 import 'dotenv/config'
 import { PrismaClient } from '@prisma/client'
-import { hashPassword } from '../src/passwords.js'
+import { hashPassword } from '../src/security/passwords.js'
 
 const BASE = 'http://127.0.0.1:4000'
 const owner = new PrismaClient({ datasources: { db: { url: process.env.DIRECT_URL } } })

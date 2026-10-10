@@ -1,6 +1,6 @@
 import { buildApp } from './app.js'
-import { config } from './config.js'
-import { prisma } from './prisma.js'
+import { config } from './config/config.js'
+import { prisma } from './db/prisma.js'
 
 const app = await buildApp()
 try {

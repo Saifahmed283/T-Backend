@@ -34,6 +34,6 @@ export async function setup() {
 }
 
 export async function teardown() {
-  const { prisma } = await import('../src/prisma.js')
+  const { prisma } = await import('../src/db/prisma.js')
   await prisma.$disconnect()
 }

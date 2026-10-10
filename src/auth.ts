@@ -1,10 +1,10 @@
 import { createHmac, randomBytes, randomUUID } from 'node:crypto'
 import type { FastifyReply, FastifyRequest } from 'fastify'
-import { config } from './config.js'
-import { prisma } from './prisma.js'
+import { config } from './config/config.js'
+import { prisma } from './db/prisma.js'
 import { AppError } from './errors.js'
 
-export { hashPassword, verifyPassword } from './passwords.js'
+export { hashPassword, verifyPassword } from './security/passwords.js'
 
 export const SESSION_COOKIE = 'tm_session'
 

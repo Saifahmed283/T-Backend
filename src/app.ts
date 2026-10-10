@@ -4,7 +4,7 @@ import rateLimit from '@fastify/rate-limit'
 import cookie from '@fastify/cookie'
 import cors from '@fastify/cors'
 import sensible from '@fastify/sensible'
-import { config } from './config.js'
+import { config } from './config/config.js'
 import { registerErrorHandler } from './errors.js'
 import { registerRoutes } from './routes.js'
 

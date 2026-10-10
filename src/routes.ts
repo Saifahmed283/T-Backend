@@ -1,6 +1,6 @@
 import type { FastifyInstance } from 'fastify'
 import { z } from 'zod'
-import { prisma } from './prisma.js'
+import { prisma } from './db/prisma.js'
 import { AppError } from './errors.js'
 import {
   SESSION_COOKIE,
