@@ -6,7 +6,7 @@ import cors from '@fastify/cors'
 import sensible from '@fastify/sensible'
 import { config } from './config/config.js'
 import { registerErrorHandler } from './http/errors.js'
-import { registerRoutes } from './routes.js'
+import { registerRoutes } from './http/routes/index.js'
 
 export async function buildApp() {
   const app = Fastify({ logger: config.NODE_ENV !== 'test' })
