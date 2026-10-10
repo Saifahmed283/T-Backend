@@ -1,0 +1,138 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider  = "postgresql"
+  url       = env("DATABASE_URL")
+  directUrl = env("DIRECT_URL")
+}
+
+enum AssignmentStatus {
+  ON_TRACK
+  AT_RISK
+  BLOCKED
+}
+enum WorkflowStage {
+  G0
+  G1
+  G2
+  G3
+  G4
+  G5
+  G6
+  G7
+}
+enum ActivityType {
+  CREATED
+  STATUS_CHANGED
+  STAGE_ADVANCED
+  NOTE_ADDED
+  ASSIGNED
+}
+enum ExpertStatus {
+  REGISTERED
+  PROFILE_COMPLETE
+  VETTED
+  MATCHED
+  DEPLOYED
+  REJECTED
+}
+
+model User {
+  id            String           @id @default(cuid())
+  email         String           @unique
+  name          String
+  passwordHash  String?
+  createdAt     DateTime         @default(now())
+  updatedAt     DateTime         @updatedAt
+  memberships   WorkspaceMember[]
+  ledAssignments Assignment[]     @relation("AssignmentLead")
+  activities    ActivityLog[]
+  sessions      Session[]
+}
+
+model Workspace {
+  id           String            @id @default(cuid())
+  name         String
+  slug         String            @unique
+  createdAt    DateTime          @default(now())
+  updatedAt    DateTime          @updatedAt
+  members      WorkspaceMember[]
+  assignments  Assignment[]
+  activities   ActivityLog[]
+  experts      Expert[]
+}
+
+model WorkspaceMember {
+  workspaceId String
+  userId      String
+  role        String    @default("member")
+  workspace   Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  user        User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  @@id([workspaceId, userId])
+  @@index([userId])
+}
+
+model Session {
+  id               String   @id @default(cuid())
+  tokenHash        String   @unique
+  userId           String
+  activeWorkspaceId String
+  expiresAt        DateTime
+  createdAt        DateTime @default(now())
+  lastUsedAt       DateTime @default(now())
+  user             User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  @@index([userId])
+  @@index([expiresAt])
+}
+
+model Assignment {
+  id          String           @id
+  name        String
+  client      String
+  sector      String
+  value       Int
+  status      AssignmentStatus
+  stage       WorkflowStage
+  workspaceId String
+  leadId      String
+  createdAt   DateTime         @default(now())
+  updatedAt   DateTime         @updatedAt
+  workspace   Workspace        @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  lead        User             @relation("AssignmentLead", fields: [leadId], references: [id])
+  activities  ActivityLog[]
+  @@index([workspaceId, status])
+  @@index([workspaceId, stage])
+  @@index([workspaceId, updatedAt])
+}
+
+model ActivityLog {
+  id           String       @id @default(cuid())
+  workspaceId  String
+  type         ActivityType
+  message      String
+  assignmentId String?
+  userId       String?
+  metadata     Json?
+  createdAt    DateTime     @default(now())
+  workspace    Workspace    @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  assignment   Assignment?  @relation(fields: [assignmentId], references: [id], onDelete: Cascade)
+  user         User?        @relation(fields: [userId], references: [id], onDelete: SetNull)
+  @@index([workspaceId, createdAt])
+  @@index([assignmentId, createdAt])
+}
+
+model Expert {
+  id           String       @id @default(cuid())
+  workspaceId  String
+  name         String
+  email        String       @unique
+  sector       String
+  country      String?
+  status       ExpertStatus @default(REGISTERED)
+  registeredAt DateTime     @default(now())
+  vettedAt     DateTime?
+  workspace    Workspace    @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  @@index([workspaceId, status])
+}
