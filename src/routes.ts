@@ -1,18 +1,14 @@
 import type { FastifyInstance } from 'fastify'
 import { z } from 'zod'
 import { prisma } from './db/prisma.js'
-import { AppError } from './errors.js'
+import { AppError } from './modules/errors.js'
+import { createSession, destroySession, hashPassword, verifyPassword } from './modules/auth/auth.service.js'
 import {
   SESSION_COOKIE,
   clearSessionCookie,
-  createSession,
-  destroySession,
-  hashPassword,
-  principalOf,
-  requireAuth,
   setSessionCookie,
-  verifyPassword,
-} from './auth.js'
+} from './http/helpers/session-cookie.js'
+import { principalOf, requireAuth } from './http/middleware/requireAuth.js'
 
 const listQuerySchema = z.object({
   status: z.enum(['ON_TRACK', 'AT_RISK', 'BLOCKED']).optional(),

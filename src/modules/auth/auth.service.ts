@@ -1,21 +1,9 @@
 import { createHmac, randomBytes, randomUUID } from 'node:crypto'
-import type { FastifyReply, FastifyRequest } from 'fastify'
-import { config } from './config/config.js'
-import { prisma } from './db/prisma.js'
-import { AppError } from './errors.js'
+import { config } from '../../config/config.js'
+import { prisma } from '../../db/prisma.js'
+import type { Principal } from './types.js'
 
-export { hashPassword, verifyPassword } from './security/passwords.js'
-
-export const SESSION_COOKIE = 'tm_session'
-
-export type Principal = {
-  userId: string
-  email: string
-  name: string
-  workspaceId: string
-  workspaceSlug: string
-  role: string
-}
+export { hashPassword, verifyPassword } from '../../security/passwords.js'
 
 /* ---------- session tokens ---------- */
 
@@ -59,40 +47,4 @@ export async function resolveSession(token: string): Promise<Principal | null> {
     workspaceSlug: membership.workspace.slug,
     role: membership.role,
   }
-}
-
-export function setSessionCookie(reply: FastifyReply, token: string, expiresAt: Date): void {
-  reply.setCookie(SESSION_COOKIE, token, {
-    path: '/',
-    httpOnly: true,
-    sameSite: 'lax',
-    secure: config.NODE_ENV === 'production',
-    expires: expiresAt,
-  })
-}
-
-export function clearSessionCookie(reply: FastifyReply): void {
-  reply.clearCookie(SESSION_COOKIE, { path: '/' })
-}
-
-/* ---------- route guard ---------- */
-
-declare module 'fastify' {
-  interface FastifyRequest {
-    principal?: Principal
-  }
-}
-
-export async function requireAuth(request: FastifyRequest): Promise<void> {
-  const token = request.cookies[SESSION_COOKIE]
-  if (!token) throw new AppError(401, 'Authentication required', 'UNAUTHENTICATED')
-  const principal = await resolveSession(token)
-  if (!principal) throw new AppError(401, 'Session is invalid or has expired', 'UNAUTHENTICATED')
-  request.principal = principal
-}
-
-/** Narrows the optional `principal` for handlers that run behind `requireAuth`. */
-export function principalOf(request: FastifyRequest): Principal {
-  if (!request.principal) throw new AppError(401, 'Authentication required', 'UNAUTHENTICATED')
-  return request.principal
 }

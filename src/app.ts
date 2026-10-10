@@ -5,7 +5,7 @@ import cookie from '@fastify/cookie'
 import cors from '@fastify/cors'
 import sensible from '@fastify/sensible'
 import { config } from './config/config.js'
-import { registerErrorHandler } from './errors.js'
+import { registerErrorHandler } from './http/errors.js'
 import { registerRoutes } from './routes.js'
 
 export async function buildApp() {

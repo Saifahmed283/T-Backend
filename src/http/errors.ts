@@ -1,12 +1,6 @@
 import type { FastifyInstance, FastifyReply, FastifyRequest } from 'fastify'
 import { ZodError } from 'zod'
-
-export class AppError extends Error {
-  constructor(public readonly statusCode: number, message: string, public readonly code = 'APP_ERROR') {
-    super(message)
-    this.name = 'AppError'
-  }
-}
+import { AppError } from '../modules/errors.js'
 
 export function registerErrorHandler(app: FastifyInstance) {
   app.setErrorHandler((error: unknown, _request: FastifyRequest, reply: FastifyReply) => {
