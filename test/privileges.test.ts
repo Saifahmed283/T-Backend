@@ -54,6 +54,7 @@ describe('least-privilege runtime role', () => {
          UNION ALL SELECT has_table_privilege(current_user, 'public."Expert"', 'SELECT')
          UNION ALL SELECT has_table_privilege(current_user, 'public."ActivityLog"', 'SELECT')
          UNION ALL SELECT has_table_privilege(current_user, 'public."Session"', 'SELECT')
+         UNION ALL SELECT has_table_privilege(current_user, 'public."Submission"', 'SELECT')
        ) t`,
     )
     expect(rows[0].ok).toBe(true)
@@ -97,6 +98,17 @@ describe('least-privilege runtime role', () => {
   it('cannot write to ActivityLog', async () => {
     expect(await pgErrorCode(`UPDATE "ActivityLog" SET "message" = 'tampered'`)).toBe(PG_INSUFFICIENT_PRIVILEGE)
     expect(await pgErrorCode(`DELETE FROM "ActivityLog"`)).toBe(PG_INSUFFICIENT_PRIVILEGE)
+  })
+
+  it('may insert Submissions but never update or delete them', async () => {
+    // The public site creates submissions at runtime, so INSERT must be allowed.
+    expect(await pgErrorCode(`INSERT INTO "Submission" ("id","kind","status","email","createdAt","updatedAt") VALUES ('priv-check','CONTACT','NEW','a@b.co',now(),now())`)).toBeUndefined()
+    expect(await pgErrorCode(`UPDATE "Submission" SET "status" = 'APPROVED'`)).toBe(PG_INSUFFICIENT_PRIVILEGE)
+    expect(await pgErrorCode(`DELETE FROM "Submission"`)).toBe(PG_INSUFFICIENT_PRIVILEGE)
+    // Clean up the row the runtime role is allowed to create (as owner).
+    const owner = new PrismaClient({ datasources: { db: { url: process.env.DIRECT_URL } } })
+    await owner.$executeRawUnsafe(`DELETE FROM "Submission" WHERE "id" = 'priv-check'`)
+    await owner.$disconnect()
   })
 
   it('cannot inherit the owner role or hold grant options', async () => {

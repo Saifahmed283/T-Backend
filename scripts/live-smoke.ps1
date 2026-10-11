@@ -19,7 +19,7 @@ function Check($name, $cond, $detail = '') {
 }
 
 "== unauthenticated access is refused =="
-foreach ($p in @('/dashboard/summary', '/assignments', '/experts', '/activity')) {
+foreach ($p in @('/dashboard/summary', '/assignments', '/experts', '/activity', '/submissions')) {
   try {
     Invoke-WebRequest -Uri "$base$p" -UseBasicParsing -TimeoutSec 10 | Out-Null
     Check "401 for $p" $false '(got 200)'
@@ -69,6 +69,13 @@ $act = Invoke-RestMethod -Uri "$base/activity?limit=2" -WebSession $sess -Timeou
 Check 'activity feed paginates by limit' ($act.items.Count -eq 2) "(count=$($act.items.Count))"
 Check 'activity returns a cursor' ($null -ne $act.nextCursor) "(cursor=$($act.nextCursor))"
 Check 'activity resolves user + assignment' ($null -ne $act.items[0].user.name -and $null -ne $act.items[0].assignment.name)
+
+"== public submissions =="
+$subBody = @{ kind = 'CONTACT'; email = 'smoke@terramorph.test'; message = 'smoke probe'; source = 'live-smoke' } | ConvertTo-Json
+$sub = Invoke-RestMethod -Uri "$base/submissions" -Method POST -ContentType 'application/json' -Body $subBody -TimeoutSec 15
+Check 'anonymous submission accepted' ($sub.kind -eq 'CONTACT' -and $sub.status -eq 'NEW') "(got $($sub.kind)/$($sub.status))"
+$subList = Invoke-RestMethod -Uri "$base/submissions?kind=CONTACT" -WebSession $sess -TimeoutSec 15
+Check 'admin can list submissions' ($subList.pagination.total -ge 1) "(total=$($subList.pagination.total))"
 
 "== wrong password is rejected =="
 try {

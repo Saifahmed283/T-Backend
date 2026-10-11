@@ -136,3 +136,42 @@ model Expert {
   workspace    Workspace    @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
   @@index([workspaceId, status])
 }
+
+enum SubmissionKind {
+  CONTACT
+  EXPERT_REGISTRATION
+  SEAT_RESERVATION
+  TENDER_INTEREST
+  TEAM_PROPOSAL
+  JOB_APPLICATION
+  PUBLICATION_REQUEST
+  NEWSLETTER
+  CONTRIBUTION
+}
+
+enum SubmissionStatus {
+  NEW
+  IN_REVIEW
+  APPROVED
+  REJECTED
+  ARCHIVED
+}
+
+// Inbound messages from the public marketing site (contact, registrations,
+// reservations, tender/career interest, document requests). Platform-level, so
+// it is deliberately not workspace-scoped: it is not tenant data.
+model Submission {
+  id        String           @id @default(cuid())
+  kind      SubmissionKind
+  status    SubmissionStatus @default(NEW)
+  email     String?
+  name      String?
+  message   String?
+  source    String?
+  payload   Json?
+  createdAt DateTime         @default(now())
+  updatedAt DateTime         @updatedAt
+  @@index([kind, createdAt])
+  @@index([email])
+  @@index([status, createdAt])
+}

@@ -4,6 +4,7 @@ import { registerAssignmentRoutes } from './assignments.routes.js'
 import { registerAuthRoutes } from './auth.routes.js'
 import { registerDashboardRoutes } from './dashboard.routes.js'
 import { registerExpertRoutes } from './experts.routes.js'
+import { registerSubmissionRoutes } from './submissions.routes.js'
 
 export async function registerRoutes(app: FastifyInstance) {
   app.get(
@@ -17,4 +18,5 @@ export async function registerRoutes(app: FastifyInstance) {
   await registerAssignmentRoutes(app)
   await registerExpertRoutes(app)
   await registerActivityRoutes(app)
+  await registerSubmissionRoutes(app)
 }

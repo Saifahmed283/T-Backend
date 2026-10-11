@@ -57,6 +57,7 @@ async function clearFixtures() {
   await prisma.activityLog.deleteMany()
   await prisma.assignment.deleteMany()
   await prisma.expert.deleteMany()
+  await prisma.submission.deleteMany()
   await prisma.workspaceMember.deleteMany()
   await prisma.workspace.deleteMany()
   await prisma.user.deleteMany()
@@ -92,7 +93,7 @@ beforeEach(async () => {
 
 describe('authentication', () => {
   it('rejects protected routes without a session cookie', async () => {
-    for (const url of ['/api/v1/dashboard/summary', '/api/v1/assignments', `/api/v1/assignments/${assignmentA}`, '/api/v1/activity', '/api/v1/experts', '/api/v1/auth/me']) {
+    for (const url of ['/api/v1/dashboard/summary', '/api/v1/assignments', `/api/v1/assignments/${assignmentA}`, '/api/v1/activity', '/api/v1/experts', '/api/v1/submissions', '/api/v1/auth/me']) {
       const res = await app.inject({ method: 'GET', url })
       expect(res.statusCode, url).toBe(401)
       expect(res.json().error.code).toBe('UNAUTHENTICATED')
@@ -303,5 +304,53 @@ describe('list endpoints', () => {
     const cookie = await login('a@test.local')
     const res = await app.inject({ method: 'GET', url: `/api/v1/assignments/${'x'.repeat(80)}`, headers: { cookie } })
     expect(res.statusCode).toBe(400)
+  })
+})
+
+describe('public submissions', () => {
+  it('accepts an anonymous contact submission without a session', async () => {
+    const res = await app.inject({
+      method: 'POST',
+      url: '/api/v1/submissions',
+      payload: { kind: 'CONTACT', email: 'Reader@Example.org', name: 'A reader', message: 'Hello', source: 'contact', payload: { role: 'policy maker' } },
+    })
+    expect(res.statusCode).toBe(201)
+    const body = res.json()
+    expect(body.kind).toBe('CONTACT')
+    expect(body.status).toBe('NEW')
+    expect(typeof body.id).toBe('string')
+    const row = await prisma.submission.findFirst({ where: { id: body.id } })
+    expect(row?.email).toBe('reader@example.org')
+    expect(row?.payload).toEqual({ role: 'policy maker' })
+  })
+
+  it('requires an email for every kind except CONTRIBUTION', async () => {
+    const missing = await app.inject({ method: 'POST', url: '/api/v1/submissions', payload: { kind: 'EXPERT_REGISTRATION', name: 'No email' } })
+    expect(missing.statusCode).toBe(400)
+    expect(missing.json().error.code).toBe('VALIDATION_ERROR')
+
+    const anonymous = await app.inject({ method: 'POST', url: '/api/v1/submissions', payload: { kind: 'CONTRIBUTION' } })
+    expect(anonymous.statusCode).toBe(201)
+  })
+
+  it('rejects an unknown kind and unknown fields', async () => {
+    const kind = await app.inject({ method: 'POST', url: '/api/v1/submissions', payload: { kind: 'NONSENSE', email: 'a@b.co' } })
+    expect(kind.statusCode).toBe(400)
+    const extra = await app.inject({ method: 'POST', url: '/api/v1/submissions', payload: { kind: 'CONTACT', email: 'a@b.co', admin: true } })
+    expect(extra.statusCode).toBe(400)
+  })
+
+  it('lists submissions for an authenticated admin, newest first', async () => {
+    await app.inject({ method: 'POST', url: '/api/v1/submissions', payload: { kind: 'TENDER_INTEREST', email: 'a@b.co', payload: { item: 'Urban mobility' } } })
+    await app.inject({ method: 'POST', url: '/api/v1/submissions', payload: { kind: 'SEAT_RESERVATION', email: 'c@d.co', payload: { programme: 'LED course' } } })
+
+    const cookie = await login('a@test.local')
+    const all = await app.inject({ method: 'GET', url: '/api/v1/submissions', headers: { cookie } })
+    expect(all.statusCode).toBe(200)
+    expect(all.json().pagination.total).toBe(2)
+
+    const filtered = await app.inject({ method: 'GET', url: '/api/v1/submissions?kind=SEAT_RESERVATION', headers: { cookie } })
+    expect(filtered.json().items).toHaveLength(1)
+    expect(filtered.json().items[0].payload).toEqual({ programme: 'LED course' })
   })
 })

@@ -6,6 +6,7 @@
 //   Assignment        SELECT
 //   Expert            SELECT
 //   ActivityLog       SELECT
+//   Submission        SELECT, INSERT             (public site writes, admins read)
 //   Workspace         SELECT
 //   WorkspaceMember   SELECT
 //   _prisma_migrations SELECT                    (so migrate deploy works)
@@ -30,7 +31,7 @@ const owner = new PrismaClient({ datasources: { db: { url: datasourceUrl } } })
 const APP = process.env.DB_APP_ROLE ?? 'terramorph_app'
 const OWNER = process.env.DB_OWNER_ROLE ?? 'terramorph-backend_owner'
 
-const SELECT_ONLY = ['"User"', '"Workspace"', '"WorkspaceMember"', '"Assignment"', '"Expert"', '"ActivityLog"', '"_prisma_migrations"']
+const SELECT_ONLY = ['"User"', '"Workspace"', '"WorkspaceMember"', '"Assignment"', '"Expert"', '"ActivityLog"', '"Submission"', '"_prisma_migrations"']
 // Session needs reads too: requireAuth loads the session row with findUnique.
 const ALL_TABLES = [...SELECT_ONLY, '"Session"']
 const READ_TABLES = [...SELECT_ONLY, '"Session"']
@@ -77,6 +78,8 @@ async function main() {
       await tx.$executeRawUnsafe(`REVOKE ALL ON ${tables} FROM "${APP}"`)
       await tx.$executeRawUnsafe(`GRANT SELECT ON ${selects} TO "${APP}"`)
       await tx.$executeRawUnsafe(`GRANT INSERT, DELETE ON "Session" TO "${APP}"`)
+      // Public site submissions are inserts; admins read them. No UPDATE/DELETE.
+      await tx.$executeRawUnsafe(`GRANT INSERT ON "Submission" TO "${APP}"`)
       // Password change writes passwordHash; Prisma's @updatedAt also writes
       // updatedAt on every update, so both columns are required.
       await tx.$executeRawUnsafe(`GRANT UPDATE ("passwordHash", "updatedAt") ON "User" TO "${APP}"`)
@@ -118,6 +121,9 @@ async function main() {
             has_table_privilege($1,'public."Session"','INSERT')               AS session_insert,
             has_table_privilege($1,'public."Session"','DELETE')               AS session_delete,
             has_table_privilege($1,'public."Session"','SELECT')               AS session_select,
+            has_table_privilege($1,'public."Submission"','SELECT')            AS submission_select,
+            has_table_privilege($1,'public."Submission"','INSERT')            AS submission_insert,
+            has_table_privilege($1,'public."Submission"','UPDATE')            AS submission_update,
             has_table_privilege($1,'public."Expert"','SELECT')                AS expert_select,
             has_table_privilege($1,'public."Expert"','INSERT')                AS expert_insert,
             has_table_privilege($1,'public."Assignment"','SELECT')            AS assignment_select,
