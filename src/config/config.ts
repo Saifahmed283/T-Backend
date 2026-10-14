@@ -1,4 +1,4 @@
-import 'dotenv/config'
+﻿import 'dotenv/config'
 import { z } from 'zod'
 
 const schema = z.object({
@@ -9,7 +9,7 @@ const schema = z.object({
   NODE_ENV: z.enum(['development', 'test', 'production']).default('development'),
   SESSION_SECRET: z.string().min(32, 'SESSION_SECRET must be at least 32 characters'),
   SESSION_TTL_HOURS: z.coerce.number().int().positive().default(24 * 14),
-  SEED_ADMIN_EMAIL: z.string().email().default('admin@terramorph.com.eg'),
+  SEED_ADMIN_EMAIL: z.string().email().default('admin@askterramorph.com'),
   SEED_ADMIN_PASSWORD: z.string().min(12, 'SEED_ADMIN_PASSWORD must be at least 12 characters'),
 })
 

@@ -1,4 +1,4 @@
-# Live smoke test against a running API. Reads the seeded admin credentials
+﻿# Live smoke test against a running API. Reads the seeded admin credentials
 # from .env without printing them.
 $ErrorActionPreference = 'Stop'
 $base = 'http://127.0.0.1:4000/api/v1'
@@ -10,7 +10,7 @@ foreach ($line in Get-Content .env) {
   }
 }
 $password = $envMap['SEED_ADMIN_PASSWORD']
-$email = if ($envMap['SEED_ADMIN_EMAIL']) { $envMap['SEED_ADMIN_EMAIL'] } else { 'admin@terramorph.com.eg' }
+$email = if ($envMap['SEED_ADMIN_EMAIL']) { $envMap['SEED_ADMIN_EMAIL'] } else { 'admin@askterramorph.com' }
 if (-not $password) { throw 'SEED_ADMIN_PASSWORD not found in .env' }
 
 $fail = 0

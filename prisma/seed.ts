@@ -1,4 +1,4 @@
-import 'dotenv/config'
+﻿import 'dotenv/config'
 import { PrismaClient, AssignmentStatus, WorkflowStage, ActivityType, ExpertStatus } from '@prisma/client'
 import { hashPassword } from '../src/security/passwords.js'
 
@@ -44,7 +44,7 @@ async function main() {
   if (!password || password.length < 12) {
     throw new Error('SEED_ADMIN_PASSWORD must be set to at least 12 characters before seeding')
   }
-  const adminEmail = (process.env.SEED_ADMIN_EMAIL ?? 'admin@terramorph.com.eg').toLowerCase()
+  const adminEmail = (process.env.SEED_ADMIN_EMAIL ?? 'admin@askterramorph.com').toLowerCase()
   const adminHash = await hashPassword(password)
 
   const workspace = await prisma.workspace.upsert({
