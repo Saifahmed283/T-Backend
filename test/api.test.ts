@@ -354,3 +354,74 @@ describe('public submissions', () => {
     expect(filtered.json().items[0].payload).toEqual({ programme: 'LED course' })
   })
 })
+
+describe('error envelope and readiness', () => {
+  it('returns 400 for malformed JSON instead of 500', async () => {
+    const res = await app.inject({
+      method: 'POST',
+      url: '/api/v1/auth/login',
+      headers: { 'content-type': 'application/json' },
+      payload: '{"email": ',
+    })
+    expect(res.statusCode).toBe(400)
+    expect(res.json().error.code).toBe('INVALID_JSON')
+  })
+
+  it('uses the error envelope for unknown routes', async () => {
+    const res = await app.inject({ method: 'GET', url: '/api/v1/does-not-exist' })
+    expect(res.statusCode).toBe(404)
+    expect(res.json().error.code).toBe('NOT_FOUND')
+  })
+
+  it('reports database readiness', async () => {
+    const res = await app.inject({ method: 'GET', url: '/health/ready' })
+    expect(res.statusCode).toBe(200)
+    expect(res.json().database).toBe('up')
+  })
+})
+
+describe('role-based access and csrf', () => {
+  it('forbids a non-admin from reading the submissions inbox', async () => {
+    const hash = await hashPassword(PASSWORD)
+    const member = await prisma.user.create({ data: { name: 'Member', email: 'member@test.local', passwordHash: hash } })
+    await prisma.workspaceMember.create({ data: { workspaceId: wsA.id, userId: member.id, role: 'member' } })
+
+    const cookie = await login('member@test.local')
+    const res = await app.inject({ method: 'GET', url: '/api/v1/submissions', headers: { cookie } })
+    expect(res.statusCode).toBe(403)
+    expect(res.json().error.code).toBe('FORBIDDEN')
+  })
+
+  it('blocks a state-changing request from a disallowed origin', async () => {
+    const res = await app.inject({
+      method: 'POST',
+      url: '/api/v1/auth/login',
+      headers: { origin: 'https://evil.example' },
+      payload: { email: 'a@test.local', password: PASSWORD },
+    })
+    expect(res.statusCode).toBe(403)
+    expect(res.json().error.code).toBe('CSRF_BLOCKED')
+  })
+
+  it('allows a state-changing request from a configured origin', async () => {
+    const res = await app.inject({
+      method: 'POST',
+      url: '/api/v1/submissions',
+      headers: { origin: 'http://localhost:5173' },
+      payload: { kind: 'CONTACT', email: 'reader@example.org' },
+    })
+    expect(res.statusCode).toBe(201)
+  })
+})
+
+describe('expert status filter', () => {
+  it('filters experts by their own status enum', async () => {
+    const cookie = await login('a@test.local')
+    const ok = await app.inject({ method: 'GET', url: '/api/v1/experts?status=VETTED', headers: { cookie } })
+    expect(ok.statusCode).toBe(200)
+    expect(ok.json().items.map((e: { email: string }) => e.email)).toEqual(['expert-a@test.local'])
+
+    const bad = await app.inject({ method: 'GET', url: '/api/v1/experts?status=NONSENSE', headers: { cookie } })
+    expect(bad.statusCode).toBe(400)
+  })
+})

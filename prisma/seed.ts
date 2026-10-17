@@ -46,6 +46,16 @@ async function main() {
   }
   const adminEmail = (process.env.SEED_ADMIN_EMAIL ?? 'admin@askterramorph.com').toLowerCase()
   const adminHash = await hashPassword(password)
+  // Leads share SEED_LEAD_PASSWORD when provided; otherwise they fall back to
+  // the admin password (development convenience only). In production, use a
+  // distinct lead password so the admin credential is not handed to every lead.
+  const leadPassword = process.env.SEED_LEAD_PASSWORD
+  if (process.env.NODE_ENV === 'production' && !leadPassword) {
+    console.warn(
+      '[seed] WARNING: SEED_LEAD_PASSWORD is not set; seeded lead accounts reuse the admin password. Set it, or do not seed leads in production.',
+    )
+  }
+  const sharedHash = leadPassword ? await hashPassword(leadPassword) : adminHash
 
   const workspace = await prisma.workspace.upsert({
     where: { slug: 'terramorph' },
@@ -53,15 +63,14 @@ async function main() {
     create: { name: 'TerraMorph', slug: 'terramorph' },
   })
 
-  // One shared login for the seeded team; each lead keeps their own identity.
-  const sharedHash = adminHash
+  // Each lead keeps their own identity; see sharedHash above for credentials.
   const leads = [...new Set(assignments.map((a) => a[7]))]
   const users = new Map<string, string>()
 
   const admin = await prisma.user.upsert({
     where: { email: adminEmail },
-    update: { passwordHash: sharedHash },
-    create: { email: adminEmail, name: 'Platform Admin', passwordHash: sharedHash },
+    update: { passwordHash: adminHash },
+    create: { email: adminEmail, name: 'Platform Admin', passwordHash: adminHash },
   })
   await prisma.workspaceMember.upsert({
     where: { workspaceId_userId: { workspaceId: workspace.id, userId: admin.id } },

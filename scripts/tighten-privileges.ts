@@ -1,14 +1,20 @@
 // Tightens terramorph_app to least privilege, then verifies.
 //
 // Grants, derived from the queries the API actually issues:
-//   Session          SELECT, INSERT, DELETE      (login creates, logout deletes)
+//   Session          SELECT, INSERT, DELETE, UPDATE(lastUsedAt)
+//                                                         (login creates, logout
+//                                                          deletes, resolveSession
+//                                                          slides idle timeout)
 //   User              SELECT, UPDATE(passwordHash)
 //   Assignment        SELECT
 //   Expert            SELECT
-//   ActivityLog       SELECT
+//   ActivityLog       SELECT, INSERT             (content edits append audit rows)
 //   Submission        SELECT, INSERT             (public site writes, admins read)
+//   ContentItem       SELECT, INSERT, UPDATE, DELETE   (content workspace CRUD)
+//   Asset             SELECT, INSERT, UPDATE, DELETE   (media library)
+//   SiteSetting       SELECT, INSERT, UPDATE, DELETE   (website configuration)
 //   Workspace         SELECT
-//   WorkspaceMember   SELECT
+//   WorkspaceMember   SELECT, UPDATE(role)       (admins promote/demote members)
 //   _prisma_migrations SELECT                    (so migrate deploy works)
 //   public enum types USAGE                     (Prisma binds enum parameters)
 //
@@ -31,10 +37,12 @@ const owner = new PrismaClient({ datasources: { db: { url: datasourceUrl } } })
 const APP = process.env.DB_APP_ROLE ?? 'terramorph_app'
 const OWNER = process.env.DB_OWNER_ROLE ?? 'terramorph-backend_owner'
 
-const SELECT_ONLY = ['"User"', '"Workspace"', '"WorkspaceMember"', '"Assignment"', '"Expert"', '"ActivityLog"', '"Submission"', '"_prisma_migrations"']
+const SELECT_ONLY = ['"User"', '"Workspace"', '"WorkspaceMember"', '"Assignment"', '"Expert"', '"Submission"', '"_prisma_migrations"']
+// Content workspace tables the runtime role fully owns (insert/update/delete).
+const CMS_TABLES = ['"ContentItem"', '"Asset"', '"SiteSetting"']
 // Session needs reads too: requireAuth loads the session row with findUnique.
-const ALL_TABLES = [...SELECT_ONLY, '"Session"']
-const READ_TABLES = [...SELECT_ONLY, '"Session"']
+const ALL_TABLES = [...SELECT_ONLY, '"Session"', '"ActivityLog"', ...CMS_TABLES]
+const READ_TABLES = [...SELECT_ONLY, '"Session"', '"ActivityLog"', ...CMS_TABLES]
 
 async function snapshot() {
   const rows = await owner.$queryRawUnsafe<{ table_name: string; privileges: string }[]>(
@@ -78,8 +86,16 @@ async function main() {
       await tx.$executeRawUnsafe(`REVOKE ALL ON ${tables} FROM "${APP}"`)
       await tx.$executeRawUnsafe(`GRANT SELECT ON ${selects} TO "${APP}"`)
       await tx.$executeRawUnsafe(`GRANT INSERT, DELETE ON "Session" TO "${APP}"`)
+      // resolveSession slides the idle window forward by stamping lastUsedAt.
+      await tx.$executeRawUnsafe(`GRANT UPDATE ("lastUsedAt") ON "Session" TO "${APP}"`)
       // Public site submissions are inserts; admins read them. No UPDATE/DELETE.
       await tx.$executeRawUnsafe(`GRANT INSERT ON "Submission" TO "${APP}"`)
+      // Content edits append audit rows; they are never updated or deleted.
+      await tx.$executeRawUnsafe(`GRANT INSERT ON "ActivityLog" TO "${APP}"`)
+      // Admins promote/demote members by rewriting the role column only.
+      await tx.$executeRawUnsafe(`GRANT UPDATE ("role") ON "WorkspaceMember" TO "${APP}"`)
+      // Content workspace tables: full DML, updatedAt is written by @updatedAt.
+      await tx.$executeRawUnsafe(`GRANT INSERT, UPDATE, DELETE ON ${CMS_TABLES.join(', ')} TO "${APP}"`)
       // Password change writes passwordHash; Prisma's @updatedAt also writes
       // updatedAt on every update, so both columns are required.
       await tx.$executeRawUnsafe(`GRANT UPDATE ("passwordHash", "updatedAt") ON "User" TO "${APP}"`)
@@ -121,6 +137,8 @@ async function main() {
             has_table_privilege($1,'public."Session"','INSERT')               AS session_insert,
             has_table_privilege($1,'public."Session"','DELETE')               AS session_delete,
             has_table_privilege($1,'public."Session"','SELECT')               AS session_select,
+            has_column_privilege($1,'public."Session"','lastUsedAt','UPDATE') AS session_update_lastused,
+            has_column_privilege($1,'public."Session"','tokenHash','UPDATE')  AS session_update_tokhash,
             has_table_privilege($1,'public."Submission"','SELECT')            AS submission_select,
             has_table_privilege($1,'public."Submission"','INSERT')            AS submission_insert,
             has_table_privilege($1,'public."Submission"','UPDATE')            AS submission_update,
@@ -129,7 +147,15 @@ async function main() {
             has_table_privilege($1,'public."Assignment"','SELECT')            AS assignment_select,
             has_table_privilege($1,'public."Assignment"','UPDATE')            AS assignment_update,
             has_table_privilege($1,'public."ActivityLog"','SELECT')           AS activity_select,
+            has_table_privilege($1,'public."ActivityLog"','INSERT')           AS activity_insert,
             has_table_privilege($1,'public."WorkspaceMember"','SELECT')       AS member_select,
+            has_column_privilege($1,'public."WorkspaceMember"','role','UPDATE') AS member_update_role,
+            has_table_privilege($1,'public."ContentItem"','SELECT')           AS content_select,
+            has_table_privilege($1,'public."ContentItem"','INSERT')           AS content_insert,
+            has_table_privilege($1,'public."ContentItem"','UPDATE')           AS content_update,
+            has_table_privilege($1,'public."ContentItem"','DELETE')           AS content_delete,
+            has_table_privilege($1,'public."Asset"','INSERT')                 AS asset_insert,
+            has_table_privilege($1,'public."SiteSetting"','UPDATE')           AS setting_update,
             COALESCE((SELECT has_schema_privilege($1,'legacy','USAGE')
                       FROM pg_namespace WHERE nspname='legacy'), false)       AS legacy_usage`,
     APP,

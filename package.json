@@ -6,9 +6,10 @@
   "main": "dist/src/server.js",
   "description": "TerraMorph dashboard API",
   "scripts": {
-    "build": "tsc -p tsconfig.json",
+    "build": "prisma generate && tsc -p tsconfig.json",
     "dev": "tsx watch src/server.ts",
     "start": "node dist/src/server.js",
+    "start:prod": "npm run build && npm run prisma:deploy && node dist/src/server.js",
     "typecheck": "tsc --noEmit",
     "lint": "eslint .",
     "lint:fix": "eslint . --fix",
@@ -26,10 +27,12 @@
     "db:privileges:inspect": "tsx scripts/inspect-grants.ts"
   },
   "dependencies": {
+    "@aws-sdk/client-s3": "^3.1152.0",
     "@fastify/cookie": "^11.1.2",
     "@fastify/cors": "^10.0.1",
+    "@fastify/helmet": "^13.2.0",
+    "@fastify/multipart": "^9.4.0",
     "@fastify/rate-limit": "^11.2.0",
-    "@fastify/sensible": "^6.0.3",
     "@prisma/client": "^6.16.2",
     "dotenv": "^16.4.7",
     "fastify": "^5.4.0",

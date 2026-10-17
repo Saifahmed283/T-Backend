@@ -29,6 +29,40 @@ enum ActivityType {
   STAGE_ADVANCED
   NOTE_ADDED
   ASSIGNED
+  CONTENT_CREATED
+  CONTENT_UPDATED
+  CONTENT_STATUS_CHANGED
+  ASSET_UPLOADED
+}
+
+// The eleven publishable collections of the content workspace. One generic
+// ContentItem table serves all of them: `kind` partitions the workspace and
+// `data` holds the schema-driven field values.
+enum ContentKind {
+  ASSIGNMENT
+  CASE
+  PUBLICATION
+  INSTRUMENT
+  COURSE
+  EXPERT
+  PARTNER
+  VACANCY
+  INITIATIVE
+  AUDIENCE
+  STAGE
+}
+
+// Server-enforced editorial workflow. DRAFT -> REVIEW -> APPROVED -> PUBLISHED
+// is the happy path; SCHEDULED covers timed publish, UNPUBLISHED and ARCHIVED
+// are reversible exits.
+enum ContentStatus {
+  DRAFT
+  REVIEW
+  APPROVED
+  SCHEDULED
+  PUBLISHED
+  UNPUBLISHED
+  ARCHIVED
 }
 enum ExpertStatus {
   REGISTERED
@@ -62,6 +96,9 @@ model Workspace {
   assignments  Assignment[]
   activities   ActivityLog[]
   experts      Expert[]
+  contentItems ContentItem[]
+  assets       Asset[]
+  siteSetting  SiteSetting?
 }
 
 model WorkspaceMember {
@@ -102,6 +139,7 @@ model Assignment {
   workspace   Workspace        @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
   lead        User             @relation("AssignmentLead", fields: [leadId], references: [id])
   activities  ActivityLog[]
+  contentItems ContentItem[]
   @@index([workspaceId, status])
   @@index([workspaceId, stage])
   @@index([workspaceId, updatedAt])
@@ -113,14 +151,18 @@ model ActivityLog {
   type         ActivityType
   message      String
   assignmentId String?
+  contentItemId String?
   userId       String?
   metadata     Json?
   createdAt    DateTime     @default(now())
   workspace    Workspace    @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
   assignment   Assignment?  @relation(fields: [assignmentId], references: [id], onDelete: Cascade)
+  // SetNull rather than Cascade: the audit trail must outlive a hard delete.
+  contentItem  ContentItem? @relation(fields: [contentItemId], references: [id], onDelete: SetNull)
   user         User?        @relation(fields: [userId], references: [id], onDelete: SetNull)
   @@index([workspaceId, createdAt])
   @@index([assignmentId, createdAt])
+  @@index([contentItemId, createdAt])
 }
 
 model Expert {
@@ -174,4 +216,65 @@ model Submission {
   @@index([kind, createdAt])
   @@index([email])
   @@index([status, createdAt])
+}
+
+// One generic table for the eleven publishable collections. `title` is the
+// denormalised English title so list/search queries stay indexable without
+// reaching into the JSON payload; `data` holds the schema-driven field values
+// as { [fieldKey]: { en?, ar? } }, matching the workspace editor.
+model ContentItem {
+  id                   String        @id @default(cuid())
+  workspaceId          String
+  kind                 ContentKind
+  status               ContentStatus @default(DRAFT)
+  slug                 String
+  title                String
+  data                 Json
+  seo                  Json?
+  // Optional link from a CMS assignment page back to the operational ledger row.
+  assignmentId         String?
+  sourceReference      String?
+  scheduledPublishAt   DateTime?
+  scheduledUnpublishAt DateTime?
+  publishedAt          DateTime?
+  createdById          String?
+  updatedById          String?
+  createdAt            DateTime      @default(now())
+  updatedAt            DateTime      @updatedAt
+  workspace            Workspace     @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  assignment           Assignment?   @relation(fields: [assignmentId], references: [id], onDelete: SetNull)
+  activities           ActivityLog[]
+  @@unique([workspaceId, kind, slug])
+  @@index([workspaceId, kind, status])
+  @@index([workspaceId, status, updatedAt])
+}
+
+// Media library files. The bytes live in cloud storage (Supabase/S3); this row
+// is the catalogue: public URL, mime, size and bilingual alt text.
+model Asset {
+  id          String    @id @default(cuid())
+  workspaceId String
+  filename    String
+  storageKey  String
+  url         String
+  mimeType    String
+  size        Int
+  alt         Json?
+  createdById String?
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+  workspace   Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  @@index([workspaceId, createdAt])
+  @@index([workspaceId, mimeType])
+}
+
+// Per-workspace website configuration: contact/legal/social blocks, default SEO,
+// homepage hero and navigation order. One JSON document, one row.
+model SiteSetting {
+  id          String    @id @default(cuid())
+  workspaceId String    @unique
+  data        Json      @default("{}")
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+  workspace   Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
 }

@@ -23,3 +23,16 @@ export function principalOf(request: FastifyRequest): Principal {
   if (!request.principal) throw new AppError(401, 'Authentication required', 'UNAUTHENTICATED')
   return request.principal
 }
+
+/**
+ * Restricts a route to the given workspace roles. Must run after `requireAuth`.
+ * Used to keep platform-wide surfaces (the submissions inbox) admin-only.
+ */
+export function requireRole(...roles: string[]) {
+  return async (request: FastifyRequest): Promise<void> => {
+    const { role } = principalOf(request)
+    if (!roles.includes(role)) {
+      throw new AppError(403, 'You do not have access to this resource', 'FORBIDDEN')
+    }
+  }
+}

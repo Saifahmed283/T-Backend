@@ -1,11 +1,14 @@
 import type { FastifyInstance } from 'fastify'
+import { config } from '../../config/config.js'
 import { changePassword, destroySession, loginWithPassword } from '../../modules/auth/auth.service.js'
 import { SESSION_COOKIE, clearSessionCookie, setSessionCookie } from '../helpers/session-cookie.js'
 import { principalOf, requireAuth } from '../middleware/requireAuth.js'
 import { changePasswordSchema, loginSchema } from '../schemas/auth.schemas.js'
 
 export async function registerAuthRoutes(app: FastifyInstance) {
-  app.post('/api/v1/auth/login', async (request, reply) => {
+  // A tight, login-specific ceiling on top of the global limiter so credential
+  // stuffing from a single IP cannot consume the shared bucket.
+  app.post('/api/v1/auth/login', { config: { rateLimit: { max: config.LOGIN_RATE_LIMIT_MAX, timeWindow: '15 minutes' } } }, async (request, reply) => {
     const { email, password } = loginSchema.parse(request.body)
     const principal = await loginWithPassword(email, password)
     setSessionCookie(reply, principal.token, principal.expiresAt)

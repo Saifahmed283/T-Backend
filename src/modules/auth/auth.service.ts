@@ -24,16 +24,29 @@ export async function destroySession(token: string): Promise<void> {
   await prisma.session.deleteMany({ where: { tokenHash: tokenDigest(token) } })
 }
 
+// How often an active session's lastUsedAt is persisted. Writing on every
+// request would be wasteful; a minute is fine-grained enough for idle timeout.
+const IDLE_TOUCH_MS = 60_000
+
 export async function resolveSession(token: string): Promise<Principal | null> {
   const session = await prisma.session.findUnique({
     where: { tokenHash: tokenDigest(token) },
     include: { user: { include: { memberships: { include: { workspace: true } } } } },
   })
   if (!session) return null
-  if (session.expiresAt.getTime() <= Date.now()) {
+
+  const now = Date.now()
+  const idleMs = now - session.lastUsedAt.getTime()
+  if (session.expiresAt.getTime() <= now || idleMs > config.SESSION_IDLE_MS) {
     await prisma.session.delete({ where: { id: session.id } }).catch(() => {})
     return null
   }
+  // Slide the idle window forward, at most once a minute. Best-effort: a role
+  // without UPDATE on this column simply keeps the absolute-expiry behaviour.
+  if (idleMs > IDLE_TOUCH_MS) {
+    await prisma.session.update({ where: { id: session.id }, data: { lastUsedAt: new Date() } }).catch(() => {})
+  }
+
   // The workspace is re-read on every request so a revoked membership or a
   // deleted workspace takes effect immediately rather than at session expiry.
   const membership = session.user.memberships.find((m) => m.workspaceId === session.activeWorkspaceId)
@@ -57,6 +70,14 @@ export type AuthenticatedPrincipal = {
   expiresAt: Date
 }
 
+// Kept for constant-time misses: verifying against a real hash makes an unknown
+// email take as long as a wrong password, closing the timing side channel.
+let dummyHash: string | null = null
+async function absorbPasswordWork(password: string): Promise<void> {
+  if (!dummyHash) dummyHash = await hashPassword(randomBytes(16).toString('hex'))
+  await verifyPassword(password, dummyHash)
+}
+
 export async function loginWithPassword(email: string, password: string): Promise<AuthenticatedPrincipal> {
   const user = await prisma.user.findUnique({
     where: { email: email.toLowerCase() },
@@ -66,7 +87,10 @@ export async function loginWithPassword(email: string, password: string): Promis
   // Identical failure for unknown email and wrong password so the response
   // cannot be used to enumerate registered accounts.
   const invalid = new AppError(401, 'Email or password is incorrect', 'INVALID_CREDENTIALS')
-  if (!user?.passwordHash) throw invalid
+  if (!user?.passwordHash) {
+    await absorbPasswordWork(password)
+    throw invalid
+  }
   if (!(await verifyPassword(password, user.passwordHash))) throw invalid
 
   const membership = user.memberships[0]

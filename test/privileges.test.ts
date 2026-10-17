@@ -55,6 +55,9 @@ describe('least-privilege runtime role', () => {
          UNION ALL SELECT has_table_privilege(current_user, 'public."ActivityLog"', 'SELECT')
          UNION ALL SELECT has_table_privilege(current_user, 'public."Session"', 'SELECT')
          UNION ALL SELECT has_table_privilege(current_user, 'public."Submission"', 'SELECT')
+         UNION ALL SELECT has_table_privilege(current_user, 'public."ContentItem"', 'SELECT')
+         UNION ALL SELECT has_table_privilege(current_user, 'public."Asset"', 'SELECT')
+         UNION ALL SELECT has_table_privilege(current_user, 'public."SiteSetting"', 'SELECT')
        ) t`,
     )
     expect(rows[0].ok).toBe(true)
@@ -69,6 +72,15 @@ describe('least-privilege runtime role', () => {
     )
     expect(row.ins).toBe(true)
     expect(row.del).toBe(true)
+  })
+
+  it('may stamp only lastUsedAt on Session, never its token', async () => {
+    const [row] = await app.$queryRawUnsafe<Record<string, boolean>[]>(
+      `SELECT has_column_privilege(current_user, 'public."Session"', 'lastUsedAt', 'UPDATE') AS last_used,
+              has_column_privilege(current_user, 'public."Session"', 'tokenHash', 'UPDATE')  AS token_hash`,
+    )
+    expect(row.last_used).toBe(true)
+    expect(row.token_hash).toBe(false)
   })
 
   it('may update only the password columns on User', async () => {
@@ -95,9 +107,36 @@ describe('least-privilege runtime role', () => {
     expect(await pgErrorCode(`DELETE FROM "Assignment"`)).toBe(PG_INSUFFICIENT_PRIVILEGE)
   })
 
-  it('cannot write to ActivityLog', async () => {
+  it('may append activity but never rewrite or erase it', async () => {
+    // CMS edits create audit rows at runtime, so INSERT is granted; history is
+    // still immutable to the runtime role.
+    const [row] = await app.$queryRawUnsafe<Record<string, boolean>[]>(
+      `SELECT has_table_privilege(current_user, 'public."ActivityLog"', 'INSERT') AS ins`,
+    )
+    expect(row.ins).toBe(true)
     expect(await pgErrorCode(`UPDATE "ActivityLog" SET "message" = 'tampered'`)).toBe(PG_INSUFFICIENT_PRIVILEGE)
     expect(await pgErrorCode(`DELETE FROM "ActivityLog"`)).toBe(PG_INSUFFICIENT_PRIVILEGE)
+  })
+
+  it('may fully write content workspace tables', async () => {
+    for (const table of ['ContentItem', 'Asset', 'SiteSetting']) {
+      const [row] = await app.$queryRawUnsafe<Record<string, boolean>[]>(
+        `SELECT has_table_privilege(current_user, 'public."' || $1 || '"', 'SELECT,INSERT,UPDATE,DELETE') AS ok`,
+        table,
+      )
+      expect(row.ok, `${table} must allow the content workspace CRUD`).toBe(true)
+    }
+  })
+
+  it('may only rewrite the role column on WorkspaceMember', async () => {
+    const [row] = await app.$queryRawUnsafe<Record<string, boolean>[]>(
+      `SELECT has_column_privilege(current_user, 'public."WorkspaceMember"', 'role', 'UPDATE')       AS role,
+              has_column_privilege(current_user, 'public."WorkspaceMember"', 'userId', 'UPDATE')     AS user_id,
+              has_table_privilege(current_user, 'public."WorkspaceMember"', 'INSERT')                AS member_insert`,
+    )
+    expect(row.role).toBe(true)
+    expect(row.user_id).toBe(false)
+    expect(row.member_insert).toBe(false)
   })
 
   it('may insert Submissions but never update or delete them', async () => {

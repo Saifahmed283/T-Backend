@@ -4,7 +4,7 @@ export type ExpertStatus = 'REGISTERED' | 'PROFILE_COMPLETE' | 'VETTED' | 'MATCH
 
 export type ExpertListInput = {
   workspaceId: string
-  status?: string
+  status?: ExpertStatus
   search?: string
   page: number
   pageSize: number
@@ -14,7 +14,7 @@ export async function listExperts(input: ExpertListInput) {
   const { workspaceId, status, search, page, pageSize } = input
   const where = {
     workspaceId,
-    ...(status ? { status: status as ExpertStatus } : {}),
+    ...(status ? { status } : {}),
     ...(search
       ? {
           OR: [
