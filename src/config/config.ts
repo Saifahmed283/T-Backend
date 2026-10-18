@@ -31,8 +31,10 @@ const schema = z.object({
   // integration suite's many logins do not exhaust the bucket.
   RATE_LIMIT_MAX: z.coerce.number().int().positive().optional(),
   LOGIN_RATE_LIMIT_MAX: z.coerce.number().int().positive().optional(),
+  // Seed-only values. prisma/seed.ts reads these from the environment directly
+  // and enforces its own rules, so the API must not require them to boot.
   SEED_ADMIN_EMAIL: z.string().email().default('admin@askterramorph.com'),
-  SEED_ADMIN_PASSWORD: z.string().min(12, 'SEED_ADMIN_PASSWORD must be at least 12 characters'),
+  SEED_ADMIN_PASSWORD: z.string().min(12, 'SEED_ADMIN_PASSWORD must be at least 12 characters').optional(),
   // Optional distinct password for the non-admin seed accounts. When omitted
   // they fall back to SEED_ADMIN_PASSWORD (dev convenience only).
   SEED_LEAD_PASSWORD: z.string().min(12).optional(),
