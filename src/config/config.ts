@@ -12,6 +12,9 @@ const schema = z.object({
   // One or more browser origins allowed to call the API, comma-separated. The
   // first entry is the canonical origin used in documentation and redirects.
   FRONTEND_ORIGIN: z.string().default('http://localhost:8443'),
+  // The workspace whose PUBLISHED content backs the public website. The site's
+  // read-only endpoints expose only this tenant's published rows.
+  PUBLIC_WORKSPACE_SLUG: z.string().default('terramorph'),
   NODE_ENV: z.enum(['development', 'test', 'production']).default('development'),
   SESSION_SECRET: z.string().min(32, 'SESSION_SECRET must be at least 32 characters'),
   SESSION_TTL_HOURS: z.coerce.number().int().positive().default(24 * 14),

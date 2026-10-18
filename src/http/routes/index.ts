@@ -8,6 +8,7 @@ import { registerContentRoutes } from './content.routes.js'
 import { registerDashboardRoutes } from './dashboard.routes.js'
 import { registerExpertRoutes } from './experts.routes.js'
 import { registerMemberRoutes } from './members.routes.js'
+import { registerPublicRoutes } from './public.routes.js'
 import { registerSettingsRoutes } from './settings.routes.js'
 import { registerSubmissionRoutes } from './submissions.routes.js'
 
@@ -36,6 +37,7 @@ export async function registerRoutes(app: FastifyInstance) {
   await registerActivityRoutes(app)
   await registerSubmissionRoutes(app)
   await registerContentRoutes(app)
+  await registerPublicRoutes(app)
   await registerAssetRoutes(app)
   await registerSettingsRoutes(app)
   await registerMemberRoutes(app)

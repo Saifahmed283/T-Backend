@@ -406,6 +406,123 @@ export async function workflowBoard(workspaceId: string, perColumn = 50) {
   return { columns, generatedAt: new Date().toISOString() }
 }
 
+// --- Public (unauthenticated) read model -----------------------------------
+// The marketing site reads only PUBLISHED rows of the public workspace, after
+// publishedAt has passed and before any scheduled unpublish. Fields flagged
+// `internal` in the registry are stripped before a row leaves the API.
+
+function publishedWhere(now: Date): Prisma.ContentItemWhereInput {
+  return {
+    status: 'PUBLISHED',
+    publishedAt: { not: null, lte: now },
+    OR: [{ scheduledUnpublishAt: null }, { scheduledUnpublishAt: { gt: now } }],
+  }
+}
+
+const publicSelect = {
+  kind: true,
+  slug: true,
+  title: true,
+  data: true,
+  seo: true,
+  publishedAt: true,
+  updatedAt: true,
+} as const
+
+function stripInternal(kind: string, data: unknown): Record<string, unknown> {
+  const source = (data ?? {}) as Record<string, unknown>
+  const collectionId = collectionIdByKind[kind]
+  const collection = collectionId ? collectionById(collectionId) : undefined
+  if (!collection) return source
+  const internal = new Set(collection.fields.filter((field) => field.internal).map((field) => field.key))
+  const out: Record<string, unknown> = {}
+  for (const [key, value] of Object.entries(source)) {
+    if (internal.has(key)) continue
+    out[key] = value
+  }
+  return out
+}
+
+function toPublicItem<T extends { kind: string; data: unknown }>(item: T) {
+  return { ...item, collectionId: collectionIdByKind[item.kind] ?? null, data: stripInternal(item.kind, item.data) }
+}
+
+export type PublicListInput = {
+  workspaceSlug: string
+  collectionId: string
+  search?: string
+  page: number
+  pageSize: number
+}
+
+export async function listPublicContent(input: PublicListInput) {
+  const kind = toKind(input.collectionId)
+  const and: Prisma.ContentItemWhereInput[] = [publishedWhere(new Date())]
+  if (input.search) {
+    and.push({
+      OR: [
+        { title: { contains: input.search, mode: 'insensitive' } },
+        { slug: { contains: input.search, mode: 'insensitive' } },
+      ],
+    })
+  }
+  const where: Prisma.ContentItemWhereInput = {
+    kind: kind as never,
+    workspace: { slug: input.workspaceSlug },
+    AND: and,
+  }
+  const [rows, total] = await prisma.$transaction([
+    prisma.contentItem.findMany({
+      where,
+      select: publicSelect,
+      orderBy: { publishedAt: 'desc' },
+      skip: (input.page - 1) * input.pageSize,
+      take: input.pageSize,
+    }),
+    prisma.contentItem.count({ where }),
+  ])
+  return {
+    collectionId: input.collectionId,
+    items: rows.map(toPublicItem),
+    total,
+    page: input.page,
+    pageSize: input.pageSize,
+  }
+}
+
+export async function getPublicContent(workspaceSlug: string, collectionId: string, slug: string) {
+  const kind = toKind(collectionId)
+  const item = await prisma.contentItem.findFirst({
+    where: { kind: kind as never, slug, workspace: { slug: workspaceSlug }, ...publishedWhere(new Date()) },
+    select: publicSelect,
+  })
+  return item ? toPublicItem(item) : null
+}
+
+export async function publicSlugs(workspaceSlug: string) {
+  const rows = await prisma.contentItem.findMany({
+    where: { workspace: { slug: workspaceSlug }, ...publishedWhere(new Date()) },
+    select: { kind: true, slug: true },
+    orderBy: [{ kind: 'asc' }, { slug: 'asc' }],
+  })
+  const collections: Record<string, string[]> = {}
+  for (const row of rows) {
+    const collectionId = collectionIdByKind[row.kind] ?? row.kind
+    const bucket = collections[collectionId] ?? []
+    bucket.push(row.slug)
+    collections[collectionId] = bucket
+  }
+  return { collections }
+}
+
+export async function publicSiteSettings(workspaceSlug: string) {
+  const workspace = await prisma.workspace.findUnique({
+    where: { slug: workspaceSlug },
+    select: { siteSetting: { select: { data: true, updatedAt: true } } },
+  })
+  return workspace?.siteSetting ? workspace.siteSetting.data : {}
+}
+
 function collectionIdFromKind(kind: string): string | undefined {
   return collectionIdByKind[kind]
 }

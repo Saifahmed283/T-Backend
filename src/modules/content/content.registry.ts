@@ -10,6 +10,9 @@ export type FieldDefinition = {
   required?: boolean
   localized?: boolean
   hint?: string
+  // Internal fields are editable in the workspace but stripped from the public
+  // API responses (e.g. value bands that are for procurement teams only).
+  internal?: boolean
 }
 
 export type Collection = {
@@ -41,7 +44,7 @@ export const collections: Collection[] = [
       { key: 'geography', label: 'Geography' },
       { key: 'sector', label: 'Sector' },
       { key: 'domain', label: 'LDIA domain' },
-      { key: 'valueBand', label: 'Value band', hint: 'Internal only. Not shown on the public page.' },
+      { key: 'valueBand', label: 'Value band', hint: 'Internal only. Not shown on the public page.', internal: true },
       description,
       { key: 'reference', label: 'Reference' },
       { key: 'verification', label: 'Verification URL', type: 'url' },

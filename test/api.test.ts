@@ -2,6 +2,7 @@ import { afterAll, beforeAll, beforeEach, describe, expect, it } from 'vitest'
 import type { FastifyInstance } from 'fastify'
 import { buildApp } from '../src/app.js'
 import { prisma } from '../src/db/prisma.js'
+import { config } from '../src/config/config.js'
 import { hashPassword } from '../src/security/passwords.js'
 
 const PASSWORD = 'Integration-Password-1'
@@ -13,20 +14,25 @@ let wsA: { id: string; slug: string }
 let wsB: { id: string; slug: string }
 let userA: { id: string; email: string }
 let userB: { id: string; email: string }
+// The workspace whose PUBLISHED content backs the public website.
+let wsPub: { id: string; slug: string }
 const assignmentA = 'TEST-A-001'
 const assignmentB = 'TEST-B-001'
 
 async function seedFixtures() {
   wsA = await prisma.workspace.create({ data: { name: 'Tenant A', slug: 'tenant-a' } })
   wsB = await prisma.workspace.create({ data: { name: 'Tenant B', slug: 'tenant-b' } })
+  wsPub = await prisma.workspace.create({ data: { name: 'Public Site', slug: config.PUBLIC_WORKSPACE_SLUG } })
 
   const hash = await hashPassword(PASSWORD)
   userA = await prisma.user.create({ data: { name: 'User A', email: 'a@test.local', passwordHash: hash } })
   userB = await prisma.user.create({ data: { name: 'User B', email: 'b@test.local', passwordHash: hash } })
+  const pubEditor = await prisma.user.create({ data: { name: 'Public Editor', email: 'pub@test.local', passwordHash: hash } })
   await prisma.workspaceMember.createMany({
     data: [
       { workspaceId: wsA.id, userId: userA.id, role: 'admin' },
       { workspaceId: wsB.id, userId: userB.id, role: 'admin' },
+      { workspaceId: wsPub.id, userId: pubEditor.id, role: 'admin' },
     ],
   })
 
@@ -423,5 +429,91 @@ describe('expert status filter', () => {
 
     const bad = await app.inject({ method: 'GET', url: '/api/v1/experts?status=NONSENSE', headers: { cookie } })
     expect(bad.statusCode).toBe(400)
+  })
+})
+
+describe('public website content', () => {
+  it('never exposes drafts', async () => {
+    await prisma.contentItem.create({
+      data: { workspaceId: wsPub.id, kind: 'PUBLICATION', status: 'DRAFT', slug: 'secret-draft', title: 'Secret', data: {} },
+    })
+    const list = await app.inject({ method: 'GET', url: '/api/v1/public/content/publications' })
+    expect(list.statusCode).toBe(200)
+    expect(list.json().items).toHaveLength(0)
+    const detail = await app.inject({ method: 'GET', url: '/api/v1/public/content/publications/secret-draft' })
+    expect(detail.statusCode).toBe(404)
+    expect(detail.json().error.code).toBe('NOT_FOUND')
+  })
+
+  it('hides content scheduled to unpublish in the past', async () => {
+    await prisma.contentItem.create({
+      data: {
+        workspaceId: wsPub.id,
+        kind: 'PUBLICATION',
+        status: 'PUBLISHED',
+        slug: 'expired',
+        title: 'Expired',
+        data: {},
+        publishedAt: new Date(Date.now() - 86_400_000),
+        scheduledUnpublishAt: new Date(Date.now() - 3_600_000),
+      },
+    })
+    const res = await app.inject({ method: 'GET', url: '/api/v1/public/content/publications/expired' })
+    expect(res.statusCode).toBe(404)
+  })
+
+  it('publishes through the workflow and serves it publicly without internal fields', async () => {
+    const cookie = await login('pub@test.local')
+    const created = await app.inject({
+      method: 'POST',
+      url: '/api/v1/content/assignments',
+      headers: { cookie },
+      payload: { data: { title: { en: 'Transparent water work', ar: 'عمل الماء' }, client: 'Ministry', valueBand: 'internal-only' } },
+    })
+    expect(created.statusCode).toBe(201)
+    const { id, slug } = created.json()
+    expect(slug).toBe('transparent-water-work')
+
+    // Still a draft: invisible to the public site.
+    expect((await app.inject({ method: 'GET', url: `/api/v1/public/content/assignments/${slug}` })).statusCode).toBe(404)
+
+    const published = await app.inject({
+      method: 'POST',
+      url: `/api/v1/content/assignments/${id}/transition`,
+      headers: { cookie },
+      payload: { to: 'PUBLISHED' },
+    })
+    expect(published.statusCode).toBe(200)
+
+    const detail = await app.inject({ method: 'GET', url: `/api/v1/public/content/assignments/${slug}` })
+    expect(detail.statusCode).toBe(200)
+    const body = detail.json()
+    expect(body.collectionId).toBe('assignments')
+    expect(body.title).toBe('Transparent water work')
+    expect(body.data.title).toEqual({ en: 'Transparent water work', ar: 'عمل الماء' })
+    // Internal fields and identifiers never reach the public payload.
+    expect(body.data.valueBand).toBeUndefined()
+    expect(JSON.stringify(body)).not.toContain('createdById')
+
+    const list = await app.inject({ method: 'GET', url: '/api/v1/public/content/assignments' })
+    expect(list.json().items.map((i: { slug: string }) => i.slug)).toEqual([slug])
+
+    const slugs = await app.inject({ method: 'GET', url: '/api/v1/public/slugs' })
+    expect(slugs.json().collections.assignments).toEqual([slug])
+  })
+
+  it('rejects an unknown collection', async () => {
+    const res = await app.inject({ method: 'GET', url: '/api/v1/public/content/nonsense' })
+    expect(res.statusCode).toBe(404)
+    expect(res.json().error.code).toBe('NOT_FOUND')
+  })
+
+  it('serves public site settings for the public workspace', async () => {
+    await prisma.siteSetting.create({
+      data: { workspaceId: wsPub.id, data: { contact: { email: 'hello@askterramorph.com' } } },
+    })
+    const res = await app.inject({ method: 'GET', url: '/api/v1/public/settings' })
+    expect(res.statusCode).toBe(200)
+    expect(res.json().contact.email).toBe('hello@askterramorph.com')
   })
 })
