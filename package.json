@@ -6,10 +6,10 @@
   "main": "dist/src/server.js",
   "description": "TerraMorph dashboard API",
   "scripts": {
-    "build": "prisma generate && tsc -p tsconfig.json",
+    "build": "prisma generate && prisma migrate deploy && tsc -p tsconfig.json",
     "dev": "tsx watch src/server.ts",
     "start": "node dist/src/server.js",
-    "start:prod": "npm run build && npm run prisma:deploy && node dist/src/server.js",
+    "start:prod": "npm run build && node dist/src/server.js",
     "typecheck": "tsc --noEmit",
     "lint": "eslint .",
     "lint:fix": "eslint . --fix",
