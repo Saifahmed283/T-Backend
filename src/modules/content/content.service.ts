@@ -1,4 +1,4 @@
-import { Prisma } from '@prisma/client'
+import { Prisma } from '../../generated/prisma/client.js'
 import { prisma } from '../../db/prisma.js'
 import { AppError } from '../errors.js'
 import { collectionById, collectionIdByKind, kindForCollectionId } from './content.registry.js'

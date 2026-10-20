@@ -1,11 +1,12 @@
-import { PrismaClient } from "@prisma/client";
+import { PrismaClient } from "../src/generated/prisma/client.js";
+import { PrismaPg } from "@prisma/adapter-pg";
 
 const url = process.argv[2];
 if (!url) {
   console.error("usage: node _inspect2.mjs <url>");
   process.exit(1);
 }
-const prisma = new PrismaClient({ datasources: { db: { url } } });
+const prisma = new PrismaClient({ adapter: new PrismaPg({ connectionString: url }) });
 
 const safe = async (label, fn) => {
   try {

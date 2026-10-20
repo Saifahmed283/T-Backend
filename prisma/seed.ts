@@ -1,14 +1,15 @@
 ﻿import 'dotenv/config'
-import { PrismaClient, AssignmentStatus, WorkflowStage, ActivityType, ExpertStatus } from '@prisma/client'
+import { PrismaClient, AssignmentStatus, WorkflowStage, ActivityType, ExpertStatus } from '../src/generated/prisma/client.js'
+import { PrismaPg } from '@prisma/adapter-pg'
 import { hashPassword } from '../src/security/passwords.js'
 
 // Seeding writes columns the runtime role cannot touch (User.email, Expert rows,
 // ActivityLog inserts), so it must run as the migration owner via DIRECT_URL.
-// Prisma Client would otherwise use DATABASE_URL, which is least-privilege.
+// The runtime client (src/db/prisma.ts) uses DATABASE_URL, which is least-privilege.
 if (!process.env.DIRECT_URL) {
   throw new Error('DIRECT_URL is required to seed; the runtime role cannot write seed data')
 }
-const prisma = new PrismaClient({ datasources: { db: { url: process.env.DIRECT_URL } } })
+const prisma = new PrismaClient({ adapter: new PrismaPg({ connectionString: process.env.DIRECT_URL }) })
 
 const assignments = [
   ['TM-25-031', 'Governorate investment map — phase II', 'Assiut Governorate', 'Public sector', 182, AssignmentStatus.ON_TRACK, WorkflowStage.G5, 'M. Baraka'],

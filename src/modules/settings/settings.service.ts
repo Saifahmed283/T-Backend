@@ -1,4 +1,4 @@
-import { Prisma } from '@prisma/client'
+import type { Prisma } from '../../generated/prisma/client.js'
 import { prisma } from '../../db/prisma.js'
 
 // Website configuration is a single per-workspace JSON document: contact, legal

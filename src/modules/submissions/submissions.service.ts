@@ -1,4 +1,4 @@
-import type { Prisma } from '@prisma/client'
+import type { Prisma } from '../../generated/prisma/client.js'
 import { prisma } from '../../db/prisma.js'
 import type { SubmissionKind } from '../../http/schemas/submission.schemas.js'
 

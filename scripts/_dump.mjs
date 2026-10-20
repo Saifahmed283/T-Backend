@@ -1,8 +1,9 @@
-import { PrismaClient } from "@prisma/client";
+import { PrismaClient } from "../src/generated/prisma/client.js";
+import { PrismaPg } from "@prisma/adapter-pg";
 
 const url = process.argv[2];
 const tables = process.argv.slice(3);
-const prisma = new PrismaClient({ datasources: { db: { url } } });
+const prisma = new PrismaClient({ adapter: new PrismaPg({ connectionString: url }) });
 
 try {
   for (const t of tables) {

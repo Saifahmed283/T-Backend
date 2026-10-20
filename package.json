@@ -18,11 +18,12 @@
     "test:coverage": "vitest run --coverage",
     "check": "npm run typecheck && npm run lint && npm run test",
     "prisma:generate": "prisma generate",
-    "prisma:migrate": "prisma migrate dev",
+    "prisma:migrate": "prisma migrate dev && prisma generate",
     "prisma:deploy": "prisma migrate deploy",
     "prisma:seed": "tsx prisma/seed.ts",
     "probe:tenancy": "tsx scripts/tenancy-probe.ts",
     "probe:smoke": "powershell -NoProfile -ExecutionPolicy Bypass -File scripts/live-smoke.ps1",
+    "db:roles": "tsx scripts/create-roles.ts",
     "db:privileges": "tsx scripts/tighten-privileges.ts",
     "db:privileges:inspect": "tsx scripts/inspect-grants.ts"
   },
@@ -33,7 +34,8 @@
     "@fastify/helmet": "^13.2.0",
     "@fastify/multipart": "^9.4.0",
     "@fastify/rate-limit": "^11.2.0",
-    "@prisma/client": "^6.16.2",
+    "@prisma/adapter-pg": "^7.10.1",
+    "@prisma/client": "^7.10.1",
     "@types/node": "^22.10.7",
     "dotenv": "^16.4.7",
     "fastify": "^5.4.0",
@@ -41,16 +43,22 @@
   },
   "devDependencies": {
     "@eslint/js": "^9.39.5",
-    "@vitest/coverage-v8": "^3.2.7",
+    "@vitest/coverage-v8": "^5.0.5",
     "eslint": "^9.39.5",
     "globals": "^15.15.0",
-    "prisma": "^6.16.2",
+    "prisma": "^7.10.1",
     "tsx": "^4.19.2",
     "typescript": "^5.7.3",
     "typescript-eslint": "^8.71.0",
-    "vitest": "^3.2.7"
+    "vitest": "^5.0.5"
   },
   "engines": {
-    "node": ">=20"
+    "node": ">=22.12.0"
+  },
+  "allowScripts": {
+    "@prisma/client@6.19.3": true,
+    "esbuild@0.28.2": true,
+    "prisma@7.10.1": true,
+    "@prisma/engines@7.10.1": true
   }
 }

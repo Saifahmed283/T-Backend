@@ -1,10 +1,11 @@
 // Proves tenant isolation with a real second workspace over HTTP.
 import 'dotenv/config'
-import { PrismaClient } from '@prisma/client'
+import { PrismaClient } from '../src/generated/prisma/client.js'
+import { PrismaPg } from '@prisma/adapter-pg'
 import { hashPassword } from '../src/security/passwords.js'
 
 const BASE = 'http://127.0.0.1:4000'
-const owner = new PrismaClient({ datasources: { db: { url: process.env.DIRECT_URL } } })
+const owner = new PrismaClient({ adapter: new PrismaPg({ connectionString: process.env.DIRECT_URL }) })
 
 async function login(email, password) {
   const res = await fetch(`${BASE}/api/v1/auth/login`, {

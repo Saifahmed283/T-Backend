@@ -21,7 +21,8 @@
 // Also clears the owner's default privileges so newly created tables do not
 // silently inherit blanket DML again.
 import 'dotenv/config'
-import { PrismaClient } from '@prisma/client'
+import { PrismaClient } from '../src/generated/prisma/client.js'
+import { PrismaPg } from '@prisma/adapter-pg'
 
 // Optional target database, e.g. `tsx scripts/tighten-privileges.ts terramorph_test`.
 const targetDb = process.argv[2]
@@ -32,7 +33,7 @@ const datasourceUrl = (() => {
   return url.toString()
 })()
 
-const owner = new PrismaClient({ datasources: { db: { url: datasourceUrl } } })
+const owner = new PrismaClient({ adapter: new PrismaPg({ connectionString: datasourceUrl }) })
 
 const APP = process.env.DB_APP_ROLE ?? 'terramorph_app'
 const OWNER = process.env.DB_OWNER_ROLE ?? 'terramorph-backend_owner'

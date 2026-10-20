@@ -1,8 +1,9 @@
 // Reports role membership, which can grant privileges without any table ACL.
 import 'dotenv/config'
-import { PrismaClient } from '@prisma/client'
+import { PrismaClient } from '../src/generated/prisma/client.js'
+import { PrismaPg } from '@prisma/adapter-pg'
 
-const owner = new PrismaClient({ datasources: { db: { url: process.env.DIRECT_URL } } })
+const owner = new PrismaClient({ adapter: new PrismaPg({ connectionString: process.env.DIRECT_URL }) })
 
 async function main() {
   const rows = await owner.$queryRawUnsafe<

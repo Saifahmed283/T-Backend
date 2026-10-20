@@ -4,7 +4,8 @@
 // detect an over-broad grant. This file connects as terramorph_app instead and
 // asserts the exact privilege boundary the API depends on.
 import { afterAll, beforeAll, describe, expect, it } from 'vitest'
-import { PrismaClient } from '@prisma/client'
+import { PrismaClient } from '../src/generated/prisma/client.js'
+import { PrismaPg } from '@prisma/adapter-pg'
 
 const TEST_DB = 'terramorph_test'
 const PG_INSUFFICIENT_PRIVILEGE = '42501'
@@ -29,7 +30,7 @@ describe('least-privilege runtime role', () => {
     if (!runtimeUrl) throw new Error('RUNTIME_DATABASE_URL was not captured by test/setup.ts')
     const url = new URL(runtimeUrl)
     url.pathname = `/${TEST_DB}`
-    app = new PrismaClient({ datasources: { db: { url: url.toString() } } })
+    app = new PrismaClient({ adapter: new PrismaPg({ connectionString: url.toString() }) })
   })
 
   afterAll(async () => {
@@ -145,7 +146,7 @@ describe('least-privilege runtime role', () => {
     expect(await pgErrorCode(`UPDATE "Submission" SET "status" = 'APPROVED'`)).toBe(PG_INSUFFICIENT_PRIVILEGE)
     expect(await pgErrorCode(`DELETE FROM "Submission"`)).toBe(PG_INSUFFICIENT_PRIVILEGE)
     // Clean up the row the runtime role is allowed to create (as owner).
-    const owner = new PrismaClient({ datasources: { db: { url: process.env.DIRECT_URL } } })
+    const owner = new PrismaClient({ adapter: new PrismaPg({ connectionString: process.env.DIRECT_URL }) })
     await owner.$executeRawUnsafe(`DELETE FROM "Submission" WHERE "id" = 'priv-check'`)
     await owner.$disconnect()
   })

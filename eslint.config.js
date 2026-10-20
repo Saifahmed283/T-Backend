@@ -7,6 +7,15 @@ export default tseslint.config(
   js.configs.recommended,
   ...tseslint.configs.recommended,
   {
+    // Plain JS/mjs files run directly under Node (root entry, ad-hoc probes).
+    files: ['**/*.mjs', '*.js'],
+    languageOptions: {
+      ecmaVersion: 2023,
+      sourceType: 'module',
+      globals: { ...globals.node },
+    },
+  },
+  {
     files: ['**/*.ts'],
     languageOptions: {
       ecmaVersion: 2023,
