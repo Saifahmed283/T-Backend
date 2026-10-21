@@ -248,8 +248,8 @@ model ContentItem {
   @@index([workspaceId, status, updatedAt])
 }
 
-// Media library files. The bytes live in cloud storage (Supabase/S3); this row
-// is the catalogue: public URL, mime, size and bilingual alt text.
+// Media library files. The bytes live in cloud storage (S3-compatible); this
+// row is the catalogue: public URL, mime, size and bilingual alt text.
 model Asset {
   id          String    @id @default(cuid())
   workspaceId String

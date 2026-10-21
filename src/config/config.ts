@@ -40,14 +40,14 @@ const schema = z.object({
   SEED_LEAD_PASSWORD: z.string().min(12).optional(),
   // Object storage for the media library. S3-compatible: leave STORAGE_DRIVER
   // unset to keep uploads disabled (the UI shows an honest banner) until real
-  // credentials are supplied. Supabase Storage works via its S3 endpoint.
+  // credentials are supplied. Any S3-compatible endpoint works.
   STORAGE_DRIVER: z.enum(['s3']).optional(),
   S3_ENDPOINT: z.string().url().optional(),
   S3_BUCKET: z.string().min(1).optional(),
   S3_REGION: z.string().default('auto'),
   S3_ACCESS_KEY_ID: z.string().min(1).optional(),
   S3_SECRET_ACCESS_KEY: z.string().min(1).optional(),
-  // Public base URL objects are served from, e.g. a CDN or Supabase public URL.
+  // Public base URL objects are served from, e.g. a CDN or bucket public URL.
   S3_PUBLIC_BASE_URL: z.string().url().optional(),
   // MinIO and some S3-compatible services need path-style addressing.
   S3_FORCE_PATH_STYLE: booleanish.optional(),

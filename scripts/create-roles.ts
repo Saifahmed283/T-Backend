@@ -7,9 +7,8 @@
 // The password must match DB_APP_PASSWORD in .env, which DATABASE_URL embeds
 // for the runtime connection. Re-running syncs the role password to .env.
 //
-// Runs as the migration/owner role from DIRECT_URL. On Supabase that is the
-// cluster superuser `postgres` (set DB_OWNER_ROLE=postgres to match); on Neon
-// it is the dedicated owner role.
+// Runs as the migration/owner role from DIRECT_URL — on Neon that is the
+// dedicated owner role (`neondb_owner`), which owns the tables.
 import 'dotenv/config'
 import { PrismaClient } from '../src/generated/prisma/client.js'
 import { PrismaPg } from '@prisma/adapter-pg'
