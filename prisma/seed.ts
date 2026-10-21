@@ -22,12 +22,12 @@ const assignments = [
 ] as const
 
 const experts = [
-  ['Dr. Hanaa Soliman', 'hanaa.soliman@example.org', 'Education', 'Egypt', ExpertStatus.DEPLOYED],
-  ['Prof. Marcus Adeyemi', 'marcus.adeyemi@example.org', 'Economics', 'Nigeria', ExpertStatus.VETTED],
-  ['Dr. Leila Haddad', 'leila.haddad@example.org', 'Public health', 'Lebanon', ExpertStatus.MATCHED],
-  ['Eng. Tariq Mansour', 'tariq.mansour@example.org', 'Renewable energy', 'Morocco', ExpertStatus.PROFILE_COMPLETE],
-  ['Dr. Ingrid Bergman', 'ingrid.bergman@example.org', 'Labour markets', 'Sweden', ExpertStatus.REGISTERED],
-  ['Dr. Kwame Mensah', 'kwame.mensah@example.org', 'Agribusiness', 'Ghana', ExpertStatus.VETTED],
+  ['Dr. Hanaa Soliman', 'hanaa.soliman@rosetta-research.org', 'Education', 'Egypt', ExpertStatus.DEPLOYED],
+  ['Prof. Marcus Adeyemi', 'm.adeyemi@lagos-policy.org', 'Economics', 'Nigeria', ExpertStatus.VETTED],
+  ['Dr. Leila Haddad', 'leila.haddad@levant-health.org', 'Public health', 'Lebanon', ExpertStatus.MATCHED],
+  ['Eng. Tariq Mansour', 't.mansour@atlas-energy.ma', 'Renewable energy', 'Morocco', ExpertStatus.PROFILE_COMPLETE],
+  ['Dr. Ingrid Lindqvist', 'i.lindqvist@nordic-labour.se', 'Labour markets', 'Sweden', ExpertStatus.REGISTERED],
+  ['Dr. Kwame Mensah', 'kwame.mensah@accra-agri.org', 'Agribusiness', 'Ghana', ExpertStatus.VETTED],
 ] as const
 
 const notes: ReadonlyArray<readonly [string, string]> = [

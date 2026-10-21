@@ -19,8 +19,15 @@ async function pgErrorCode(statement: string): Promise<string | undefined> {
     await app.$executeRawUnsafe(statement)
     return undefined
   } catch (error) {
-    const meta = (error as { meta?: { code?: string } }).meta
-    return meta?.code
+    // Under the Prisma 7 driver adapter the SQLSTATE is nested inside the
+    // adapter error; the pool client exposes it directly on meta.
+    const meta = (error as {
+      meta?: {
+        code?: string
+        driverAdapterError?: { cause?: { code?: string } }
+      }
+    }).meta
+    return meta?.driverAdapterError?.cause?.code ?? meta?.code
   }
 }
 

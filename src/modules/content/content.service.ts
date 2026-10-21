@@ -406,7 +406,7 @@ export async function workflowBoard(workspaceId: string, perColumn = 50) {
   return { columns, generatedAt: new Date().toISOString() }
 }
 
-// --- Public (unauthenticated) read model -----------------------------------
+// Public (unauthenticated) read model.
 // The marketing site reads only PUBLISHED rows of the public workspace, after
 // publishedAt has passed and before any scheduled unpublish. Fields flagged
 // `internal` in the registry are stripped before a row leaves the API.

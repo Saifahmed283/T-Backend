@@ -5,8 +5,8 @@ import { AppError } from '../errors.js'
 import { hashPassword, verifyPassword } from '../../security/passwords.js'
 import type { Principal } from './types.js'
 
-/* ---------- session tokens ---------- */
-
+// Session tokens.
+//
 // The cookie carries a raw random token. Only an HMAC of it is stored, so a
 // database leak alone does not yield usable session cookies.
 function tokenDigest(token: string): string {
