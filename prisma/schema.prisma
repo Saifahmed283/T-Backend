@@ -31,7 +31,9 @@ enum ActivityType {
   CONTENT_CREATED
   CONTENT_UPDATED
   CONTENT_STATUS_CHANGED
+  AUTO_PUBLISHED
   ASSET_UPLOADED
+  MEMBER_ROLE_CHANGED
 }
 
 // The eleven publishable collections of the content workspace. One generic
@@ -83,6 +85,7 @@ model User {
   ledAssignments Assignment[]     @relation("AssignmentLead")
   activities    ActivityLog[]
   sessions      Session[]
+  passwordResetTokens PasswordResetToken[]
 }
 
 model Workspace {
@@ -119,6 +122,19 @@ model Session {
   createdAt        DateTime @default(now())
   lastUsedAt       DateTime @default(now())
   user             User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  @@index([userId])
+  @@index([expiresAt])
+}
+
+// Single-use password-reset links. Only an HMAC digest of the token sent to the
+// user is stored, so a database read does not yield a working reset link.
+model PasswordResetToken {
+  id        String   @id @default(cuid())
+  tokenHash String   @unique
+  userId    String
+  expiresAt DateTime
+  createdAt DateTime @default(now())
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
   @@index([userId])
   @@index([expiresAt])
 }

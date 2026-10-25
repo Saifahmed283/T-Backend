@@ -10,6 +10,7 @@
 //   Expert            SELECT
 //   ActivityLog       SELECT, INSERT             (content edits append audit rows)
 //   Submission        SELECT, INSERT             (public site writes, admins read)
+//   PasswordResetToken SELECT, INSERT, DELETE    (issue, consume, invalidate)
 //   ContentItem       SELECT, INSERT, UPDATE, DELETE   (content workspace CRUD)
 //   Asset             SELECT, INSERT, UPDATE, DELETE   (media library)
 //   SiteSetting       SELECT, INSERT, UPDATE, DELETE   (website configuration)
@@ -41,9 +42,12 @@ const OWNER = process.env.DB_OWNER_ROLE ?? 'terramorph-backend_owner'
 const SELECT_ONLY = ['"User"', '"Workspace"', '"WorkspaceMember"', '"Assignment"', '"Expert"', '"Submission"', '"_prisma_migrations"']
 // Content workspace tables the runtime role fully owns (insert/update/delete).
 const CMS_TABLES = ['"ContentItem"', '"Asset"', '"SiteSetting"']
+// Reset tokens are read (findUnique), inserted (issue) and deleted (consume or
+// invalidate), never updated.
+const RESET_TABLES = ['"PasswordResetToken"']
 // Session needs reads too: requireAuth loads the session row with findUnique.
-const ALL_TABLES = [...SELECT_ONLY, '"Session"', '"ActivityLog"', ...CMS_TABLES]
-const READ_TABLES = [...SELECT_ONLY, '"Session"', '"ActivityLog"', ...CMS_TABLES]
+const ALL_TABLES = [...SELECT_ONLY, '"Session"', '"ActivityLog"', ...RESET_TABLES, ...CMS_TABLES]
+const READ_TABLES = [...SELECT_ONLY, '"Session"', '"ActivityLog"', ...RESET_TABLES, ...CMS_TABLES]
 
 async function snapshot() {
   const rows = await owner.$queryRawUnsafe<{ table_name: string; privileges: string }[]>(
@@ -93,6 +97,9 @@ async function main() {
       await tx.$executeRawUnsafe(`GRANT INSERT ON "Submission" TO "${APP}"`)
       // Content edits append audit rows; they are never updated or deleted.
       await tx.$executeRawUnsafe(`GRANT INSERT ON "ActivityLog" TO "${APP}"`)
+      // Reset links: issue, consume and invalidate. No UPDATE, so a stored
+      // digest cannot be re-pointed at another user.
+      await tx.$executeRawUnsafe(`GRANT INSERT, DELETE ON "PasswordResetToken" TO "${APP}"`)
       // Admins promote/demote members by rewriting the role column only.
       await tx.$executeRawUnsafe(`GRANT UPDATE ("role") ON "WorkspaceMember" TO "${APP}"`)
       // Content workspace tables: full DML, updatedAt is written by @updatedAt.
@@ -151,6 +158,10 @@ async function main() {
             has_table_privilege($1,'public."ActivityLog"','INSERT')           AS activity_insert,
             has_table_privilege($1,'public."WorkspaceMember"','SELECT')       AS member_select,
             has_column_privilege($1,'public."WorkspaceMember"','role','UPDATE') AS member_update_role,
+            has_table_privilege($1,'public."PasswordResetToken"','SELECT')     AS reset_select,
+            has_table_privilege($1,'public."PasswordResetToken"','INSERT')     AS reset_insert,
+            has_table_privilege($1,'public."PasswordResetToken"','DELETE')     AS reset_delete,
+            has_table_privilege($1,'public."PasswordResetToken"','UPDATE')     AS reset_update,
             has_table_privilege($1,'public."ContentItem"','SELECT')           AS content_select,
             has_table_privilege($1,'public."ContentItem"','INSERT')           AS content_insert,
             has_table_privilege($1,'public."ContentItem"','UPDATE')           AS content_update,

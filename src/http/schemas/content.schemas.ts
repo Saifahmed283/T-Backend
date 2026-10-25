@@ -17,8 +17,10 @@ export const createContentSchema = z
     data: localizedRecord.default({}),
     seo: localizedRecord.optional(),
     slug: z.string().trim().max(120).optional(),
-    assignmentId: z.string().trim().max(50).optional(),
-    sourceReference: z.string().trim().max(300).optional(),
+    assignmentId: z.string().trim().max(50).nullable().optional(),
+    sourceReference: z.string().trim().max(300).nullable().optional(),
+    scheduledPublishAt: z.string().datetime().nullable().optional(),
+    scheduledUnpublishAt: z.string().datetime().nullable().optional(),
   })
   .strict()
 

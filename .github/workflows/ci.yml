@@ -1,0 +1,69 @@
+name: Backend CI
+
+on:
+  push:
+    branches: ["**"]
+  pull_request:
+
+concurrency:
+  group: backend-ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:16-alpine
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: postgres
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U postgres"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 20
+
+    env:
+      NODE_ENV: test
+      # The integration suite runs as the owner against terramorph_test, then
+      # the privilege suite connects with the least-privilege runtime role.
+      DIRECT_URL: postgresql://postgres:postgres@localhost:5432/terramorph_test
+      DATABASE_URL: postgresql://terramorph_app:ci-app-password@localhost:5432/terramorph_test
+      DB_APP_ROLE: terramorph_app
+      DB_APP_PASSWORD: ci-app-password
+      DB_OWNER_ROLE: postgres
+      SESSION_SECRET: ci-session-secret-that-is-long-enough-0000
+      FRONTEND_ORIGIN: http://localhost:8443
+      SEED_ADMIN_EMAIL: admin@example.test
+      SEED_ADMIN_PASSWORD: Ci-Admin-Password-123
+      EMAIL_ENABLED: "true"
+      EMAIL_PROVIDER: memory
+      ADMIN_NOTIFICATION_EMAIL: ops@example.test
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - run: npm ci
+      - run: npm run prisma:generate
+
+      - name: Create the test database
+        run: psql "postgresql://postgres:postgres@localhost:5432/postgres" -c "CREATE DATABASE terramorph_test"
+
+      - name: Create the runtime role and apply migrations
+        run: |
+          npm run db:roles
+          npm run prisma:deploy
+          npm run db:privileges -- terramorph_test
+
+      # typecheck + eslint + the password, API integration, scheduler, email
+      # and privilege-regression suites.
+      - run: npm run check

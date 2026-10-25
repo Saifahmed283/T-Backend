@@ -1,4 +1,5 @@
 import type { FastifyInstance } from 'fastify'
+import { notifySubmissionCreated } from '../../modules/notifications/submission-notifications.js'
 import { createSubmission, listSubmissions } from '../../modules/submissions/submissions.service.js'
 import { requireAuth, requireRole } from '../middleware/requireAuth.js'
 import { createSubmissionSchema, listSubmissionsSchema } from '../schemas/submission.schemas.js'
@@ -19,7 +20,20 @@ export async function registerSubmissionRoutes(app: FastifyInstance) {
     },
     async (request, reply) => {
       const body = createSubmissionSchema.parse(request.body)
-      return reply.status(201).send(await createSubmission(body))
+      const created = await createSubmission(body)
+      // Best-effort: notifications never turn a recorded submission into a 5xx.
+      await notifySubmissionCreated(
+        {
+          ...created,
+          email: body.email ?? null,
+          name: body.name ?? null,
+          message: body.message ?? null,
+          source: body.source ?? null,
+          payload: body.payload ?? null,
+        },
+        request.log,
+      )
+      return reply.status(201).send(created)
     },
   )
 

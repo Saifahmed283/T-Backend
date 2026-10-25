@@ -105,10 +105,10 @@ export function requiredFieldsMissing(collectionId: string, data: Record<string,
 
 async function logActivity(input: {
   workspaceId: string
-  type: 'CONTENT_CREATED' | 'CONTENT_UPDATED' | 'CONTENT_STATUS_CHANGED'
+  type: 'CONTENT_CREATED' | 'CONTENT_UPDATED' | 'CONTENT_STATUS_CHANGED' | 'AUTO_PUBLISHED'
   message: string
   contentItemId: string
-  userId: string
+  userId: string | null
   metadata?: Prisma.InputJsonValue
 }) {
   await prisma.activityLog.create({
@@ -206,8 +206,10 @@ export type CreateContentInput = {
   data: unknown
   seo?: unknown
   slug?: string
-  assignmentId?: string
-  sourceReference?: string
+  assignmentId?: string | null
+  sourceReference?: string | null
+  scheduledPublishAt?: string | null
+  scheduledUnpublishAt?: string | null
 }
 
 export async function createContent(input: CreateContentInput) {
@@ -239,6 +241,8 @@ export async function createContent(input: CreateContentInput) {
       ...(input.seo ? { seo: input.seo as Prisma.InputJsonValue } : {}),
       ...(input.assignmentId ? { assignmentId: input.assignmentId } : {}),
       ...(input.sourceReference ? { sourceReference: input.sourceReference } : {}),
+      ...(input.scheduledPublishAt ? { scheduledPublishAt: new Date(input.scheduledPublishAt) } : {}),
+      ...(input.scheduledUnpublishAt ? { scheduledUnpublishAt: new Date(input.scheduledUnpublishAt) } : {}),
       createdById: input.userId,
       updatedById: input.userId,
     },
@@ -306,9 +310,13 @@ export async function updateContent(input: UpdateContentInput) {
 export type TransitionInput = {
   workspaceId: string
   id: string
-  userId: string
+  userId: string | null
   role: string
   to: string
+  // The scheduler acts without a human principal: skip the approver check and
+  // tag the audit entry as an automatic publish.
+  system?: boolean
+  activityType?: 'CONTENT_STATUS_CHANGED' | 'AUTO_PUBLISHED'
 }
 
 export async function transitionContent(input: TransitionInput) {
@@ -319,8 +327,11 @@ export async function transitionContent(input: TransitionInput) {
   if (!allowed.includes(to)) {
     throw new AppError(409, `Cannot move from ${existing.status} to ${to}`, 'INVALID_TRANSITION')
   }
-  if (APPROVER_TARGETS.has(to) && !APPROVER_ROLES.has(input.role)) {
+  if (APPROVER_TARGETS.has(to) && !input.system && !APPROVER_ROLES.has(input.role)) {
     throw new AppError(403, 'Only approvers may perform this action', 'FORBIDDEN')
+  }
+  if (to === 'SCHEDULED' && !existing.scheduledPublishAt) {
+    throw new AppError(422, 'Set a scheduled publish time before scheduling this item', 'SCHEDULE_REQUIRED')
   }
 
   const collectionId = collectionIdFromKind(existing.kind)
@@ -337,20 +348,27 @@ export async function transitionContent(input: TransitionInput) {
     status: to as never,
     updatedById: input.userId,
   }
-  if (to === 'PUBLISHED') update.publishedAt = now
+  if (to === 'PUBLISHED') {
+    update.publishedAt = now
+    // The schedule has been consumed; keep it out of the editor's next publish.
+    update.scheduledPublishAt = null
+  }
   if (to === 'DRAFT') {
     update.publishedAt = null
     update.scheduledPublishAt = null
   }
 
   const item = await prisma.contentItem.update({ where: { id: existing.id }, data: update, select: contentSelect })
+  const automatic = input.activityType === 'AUTO_PUBLISHED'
   await logActivity({
     workspaceId: input.workspaceId,
-    type: 'CONTENT_STATUS_CHANGED',
-    message: `Moved "${item.title}" from ${existing.status} to ${to}`,
+    type: input.activityType ?? 'CONTENT_STATUS_CHANGED',
+    message: automatic
+      ? `Auto-published "${item.title}" at its scheduled time`
+      : `Moved "${item.title}" from ${existing.status} to ${to}`,
     contentItemId: item.id,
     userId: input.userId,
-    metadata: { from: existing.status, to },
+    metadata: { from: existing.status, to, ...(automatic ? { scheduled: true } : {}) },
   })
   return item
 }

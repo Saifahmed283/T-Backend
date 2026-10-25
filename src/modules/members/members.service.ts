@@ -46,9 +46,21 @@ export async function updateMemberRole(input: {
     if (admins <= 1) throw new AppError(409, 'At least one admin must remain', 'LAST_ADMIN')
   }
 
-  return prisma.workspaceMember.update({
-    where: { workspaceId_userId: { workspaceId: input.workspaceId, userId: input.userId } },
-    data: { role: input.role },
-    select: { role: true, user: { select: { id: true, name: true, email: true } } },
+  return prisma.$transaction(async (tx) => {
+    const updated = await tx.workspaceMember.update({
+      where: { workspaceId_userId: { workspaceId: input.workspaceId, userId: input.userId } },
+      data: { role: input.role },
+      select: { role: true, user: { select: { id: true, name: true, email: true } } },
+    })
+    await tx.activityLog.create({
+      data: {
+        workspaceId: input.workspaceId,
+        type: 'MEMBER_ROLE_CHANGED',
+        message: `Changed ${updated.user.name}'s role from ${membership.role} to ${input.role}`,
+        userId: input.actorUserId,
+        metadata: { userId: updated.user.id, from: membership.role, to: input.role },
+      },
+    })
+    return updated
   })
 }

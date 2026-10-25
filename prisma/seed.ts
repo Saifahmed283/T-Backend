@@ -2,6 +2,7 @@
 import { PrismaClient, AssignmentStatus, WorkflowStage, ActivityType, ExpertStatus } from '../src/generated/prisma/client.js'
 import { PrismaPg } from '@prisma/adapter-pg'
 import { hashPassword } from '../src/security/passwords.js'
+import { seedContent } from './content-seed.js'
 
 // Seeding writes columns the runtime role cannot touch (User.email, Expert rows,
 // ActivityLog inserts), so it must run as the migration owner via DIRECT_URL.
@@ -146,6 +147,11 @@ async function main() {
     notesCreated += 1
   }
 
+  // Public-site content: every collection the marketing site reads through
+  // /api/v1/public/content. Published immediately so the CMS is not empty on a
+  // fresh install; editors can revise or unpublish from the dashboard.
+  const contentCounts = await seedContent(prisma, workspace.id, admin.id)
+
   const [assignmentCount, expertCount, noteCount] = await Promise.all([
     prisma.assignment.count({ where: { workspaceId: workspace.id } }),
     prisma.expert.count({ where: { workspaceId: workspace.id } }),
@@ -153,6 +159,12 @@ async function main() {
   ])
   console.log(
     `Seeded workspace "${workspace.slug}": ${assignmentCount} assignments, ${expertCount} experts, ${noteCount} notes (+${notesCreated} new).`,
+  )
+  const contentTotal = Object.values(contentCounts).reduce((sum, count) => sum + count, 0)
+  console.log(
+    `Seeded ${contentTotal} published content items: ${Object.entries(contentCounts)
+      .map(([id, count]) => `${id} ${count}`)
+      .join(', ')}.`,
   )
   console.log(`Sign in as ${adminEmail} with SEED_ADMIN_PASSWORD.`)
 }

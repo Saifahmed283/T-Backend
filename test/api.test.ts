@@ -4,8 +4,16 @@ import { buildApp } from '../src/app.js'
 import { prisma } from '../src/db/prisma.js'
 import { config } from '../src/config/config.js'
 import { hashPassword } from '../src/security/passwords.js'
+import { publishDueContent } from '../src/modules/content/scheduler.js'
+import { clearEmailOutbox, getEmailOutbox } from '../src/modules/email/email.service.js'
 
 const PASSWORD = 'Integration-Password-1'
+
+function resetTokenFrom(text: string): string {
+  const match = /token=([A-Za-z0-9_-]+)/.exec(text)
+  if (!match) throw new Error('reset link not found in outbound email')
+  return match[1]!
+}
 
 let app: FastifyInstance
 
@@ -59,6 +67,7 @@ async function seedFixtures() {
 }
 
 async function clearFixtures() {
+  await prisma.passwordResetToken.deleteMany()
   await prisma.session.deleteMany()
   await prisma.activityLog.deleteMany()
   await prisma.assignment.deleteMany()
@@ -93,6 +102,7 @@ afterAll(async () => {
 })
 
 beforeEach(async () => {
+  clearEmailOutbox()
   await clearFixtures()
   await seedFixtures()
 })
@@ -201,6 +211,77 @@ describe('authentication', () => {
     })
     expect(res.statusCode).toBe(204)
     expect(await prisma.session.count()).toBe(0)
+  })
+
+  it('answers a reset request identically for known and unknown addresses', async () => {
+    const known = await app.inject({ method: 'POST', url: '/api/v1/auth/password/forgot', payload: { email: 'A@Test.Local' } })
+    const unknown = await app.inject({ method: 'POST', url: '/api/v1/auth/password/forgot', payload: { email: 'nobody@test.local' } })
+
+    expect(known.statusCode).toBe(202)
+    expect(unknown.statusCode).toBe(202)
+    expect(known.json()).toEqual({ ok: true })
+    expect(unknown.json()).toEqual({ ok: true })
+
+    // Only the registered address receives mail, but the response cannot tell
+    // the caller which one that was.
+    const mail = getEmailOutbox()
+    expect(mail).toHaveLength(1)
+    expect(mail[0]!.to).toBe('a@test.local')
+    expect(mail[0]!.subject).toMatch(/reset/i)
+
+    const token = resetTokenFrom(mail[0]!.text)
+    const rows = await prisma.passwordResetToken.findMany()
+    expect(rows).toHaveLength(1)
+    expect(rows[0]!.expiresAt.getTime()).toBeGreaterThan(Date.now())
+    // The raw token is never stored.
+    expect(JSON.stringify(rows)).not.toContain(token)
+  })
+
+  it('resets the password once, consumes the link and signs out every session', async () => {
+    const cookie = await login('a@test.local')
+    await app.inject({ method: 'POST', url: '/api/v1/auth/password/forgot', payload: { email: 'a@test.local' } })
+    const token = resetTokenFrom(getEmailOutbox()[0]!.text)
+    const newPassword = 'Brand-New-Password-42'
+
+    const res = await app.inject({ method: 'POST', url: '/api/v1/auth/password/reset', payload: { token, newPassword } })
+    expect(res.statusCode).toBe(200)
+    expect(res.json()).toEqual({ ok: true })
+
+    expect(await prisma.session.count()).toBe(0)
+    expect(await prisma.passwordResetToken.count()).toBe(0)
+    expect((await app.inject({ method: 'GET', url: '/api/v1/auth/me', headers: { cookie } })).statusCode).toBe(401)
+
+    const reuse = await app.inject({ method: 'POST', url: '/api/v1/auth/password/reset', payload: { token, newPassword: 'Another-Password-77' } })
+    expect(reuse.statusCode).toBe(400)
+    expect(reuse.json().error.code).toBe('INVALID_RESET_TOKEN')
+
+    const oldLogin = await app.inject({ method: 'POST', url: '/api/v1/auth/login', payload: { email: 'a@test.local', password: PASSWORD } })
+    expect(oldLogin.statusCode).toBe(401)
+    const newLogin = await app.inject({ method: 'POST', url: '/api/v1/auth/login', payload: { email: 'a@test.local', password: newPassword } })
+    expect(newLogin.statusCode).toBe(200)
+  })
+
+  it('rejects an expired reset link and removes it', async () => {
+    await app.inject({ method: 'POST', url: '/api/v1/auth/password/forgot', payload: { email: 'a@test.local' } })
+    const token = resetTokenFrom(getEmailOutbox()[0]!.text)
+    await prisma.passwordResetToken.updateMany({ data: { expiresAt: new Date(Date.now() - 1_000) } })
+
+    const res = await app.inject({ method: 'POST', url: '/api/v1/auth/password/reset', payload: { token, newPassword: 'Brand-New-Password-42' } })
+    expect(res.statusCode).toBe(400)
+    expect(res.json().error.code).toBe('INVALID_RESET_TOKEN')
+    expect(await prisma.passwordResetToken.count()).toBe(0)
+  })
+
+  it('rejects an unknown reset token and invalid new passwords', async () => {
+    const unknown = await app.inject({ method: 'POST', url: '/api/v1/auth/password/reset', payload: { token: 'not-a-real-token', newPassword: 'Brand-New-Password-42' } })
+    expect(unknown.statusCode).toBe(400)
+    expect(unknown.json().error.code).toBe('INVALID_RESET_TOKEN')
+
+    await app.inject({ method: 'POST', url: '/api/v1/auth/password/forgot', payload: { email: 'a@test.local' } })
+    const token = resetTokenFrom(getEmailOutbox()[0]!.text)
+    const weak = await app.inject({ method: 'POST', url: '/api/v1/auth/password/reset', payload: { token, newPassword: 'short' } })
+    expect(weak.statusCode).toBe(400)
+    expect(weak.json().error.code).toBe('VALIDATION_ERROR')
   })
 })
 
@@ -359,6 +440,31 @@ describe('public submissions', () => {
     expect(filtered.json().items).toHaveLength(1)
     expect(filtered.json().items[0].payload).toEqual({ programme: 'LED course' })
   })
+
+  it('notifies the team and acknowledges the sender', async () => {
+    const res = await app.inject({
+      method: 'POST',
+      url: '/api/v1/submissions',
+      payload: { kind: 'CONTACT', email: 'Reader@Example.org', name: 'A reader', message: 'Hello', source: 'contact' },
+    })
+    expect(res.statusCode).toBe(201)
+
+    const mail = getEmailOutbox()
+    expect(mail).toHaveLength(2)
+    const admin = mail.find((m) => m.to === 'ops@test.local')
+    const receipt = mail.find((m) => m.to === 'reader@example.org')
+    expect(admin?.subject).toContain('New contact message')
+    expect(admin?.text).toContain(`Reference: ${res.json().id}`)
+    expect(receipt?.subject).toMatch(/received/i)
+  })
+
+  it('sends no receipt for an anonymous contribution', async () => {
+    const res = await app.inject({ method: 'POST', url: '/api/v1/submissions', payload: { kind: 'CONTRIBUTION' } })
+    expect(res.statusCode).toBe(201)
+    const mail = getEmailOutbox()
+    expect(mail).toHaveLength(1)
+    expect(mail[0]!.to).toBe('ops@test.local')
+  })
 })
 
 describe('error envelope and readiness', () => {
@@ -417,6 +523,45 @@ describe('role-based access and csrf', () => {
       payload: { kind: 'CONTACT', email: 'reader@example.org' },
     })
     expect(res.statusCode).toBe(201)
+  })
+})
+
+describe('member administration', () => {
+  it('records role changes in the workspace activity feed', async () => {
+    const hash = await hashPassword(PASSWORD)
+    const member = await prisma.user.create({ data: { name: 'Role Target', email: 'role-target@test.local', passwordHash: hash } })
+    await prisma.workspaceMember.create({ data: { workspaceId: wsA.id, userId: member.id, role: 'member' } })
+
+    const cookie = await login('a@test.local')
+    const res = await app.inject({
+      method: 'PATCH',
+      url: `/api/v1/members/${member.id}`,
+      headers: { cookie },
+      payload: { role: 'lead' },
+    })
+    expect(res.statusCode).toBe(200)
+    expect(res.json().role).toBe('lead')
+
+    const feed = await app.inject({ method: 'GET', url: '/api/v1/activity?limit=50', headers: { cookie } })
+    const entry = feed.json().items.find((item: { type: string }) => item.type === 'MEMBER_ROLE_CHANGED')
+    expect(entry).toMatchObject({
+      type: 'MEMBER_ROLE_CHANGED',
+      message: "Changed Role Target's role from member to lead",
+      metadata: { userId: member.id, from: 'member', to: 'lead' },
+      user: { name: 'User A' },
+    })
+  })
+
+  it('refuses to let an admin demote their own account', async () => {
+    const cookie = await login('a@test.local')
+    const res = await app.inject({
+      method: 'PATCH',
+      url: `/api/v1/members/${userA.id}`,
+      headers: { cookie },
+      payload: { role: 'member' },
+    })
+    expect(res.statusCode).toBe(409)
+    expect(res.json().error.code).toBe('SELF_DEMOTION_BLOCKED')
   })
 })
 
@@ -515,5 +660,107 @@ describe('public website content', () => {
     const res = await app.inject({ method: 'GET', url: '/api/v1/public/settings' })
     expect(res.statusCode).toBe(200)
     expect(res.json().contact.email).toBe('hello@askterramorph.com')
+  })
+})
+
+describe('scheduled publishing', () => {
+  async function createScheduled(scheduledPublishAt: string) {
+    const cookie = await login('pub@test.local')
+    const created = await app.inject({
+      method: 'POST',
+      url: '/api/v1/content/assignments',
+      headers: { cookie },
+      payload: {
+        data: { title: { en: 'Scheduled water work' }, client: 'Ministry' },
+        scheduledPublishAt,
+      },
+    })
+    expect(created.statusCode).toBe(201)
+    const { id, slug } = created.json()
+    for (const to of ['REVIEW', 'APPROVED'] as const) {
+      const next = await app.inject({
+        method: 'POST',
+        url: `/api/v1/content/assignments/${id}/transition`,
+        headers: { cookie },
+        payload: { to },
+      })
+      expect(next.statusCode, to).toBe(200)
+    }
+    const scheduled = await app.inject({
+      method: 'POST',
+      url: `/api/v1/content/assignments/${id}/transition`,
+      headers: { cookie },
+      payload: { to: 'SCHEDULED' },
+    })
+    expect(scheduled.statusCode).toBe(200)
+    expect(scheduled.json().scheduledPublishAt).toBeTruthy()
+    return { id, slug, cookie }
+  }
+
+  it('publishes an overdue item once and logs AUTO_PUBLISHED', async () => {
+    const { id, slug, cookie } = await createScheduled(new Date(Date.now() - 60_000).toISOString())
+
+    // Still scheduled: invisible to the public site.
+    expect((await app.inject({ method: 'GET', url: `/api/v1/public/content/assignments/${slug}` })).statusCode).toBe(404)
+
+    const [first, second] = await Promise.all([publishDueContent(), publishDueContent()])
+    expect(first.published + second.published).toBe(1)
+
+    const item = await app.inject({ method: 'GET', url: `/api/v1/content/assignments/${id}`, headers: { cookie } })
+    expect(item.json().status).toBe('PUBLISHED')
+    expect(item.json().publishedAt).toBeTruthy()
+    expect(item.json().scheduledPublishAt).toBeNull()
+
+    const detail = await app.inject({ method: 'GET', url: `/api/v1/public/content/assignments/${slug}` })
+    expect(detail.statusCode).toBe(200)
+
+    const activity = await app.inject({ method: 'GET', url: '/api/v1/activity?limit=20', headers: { cookie } })
+    const auto = activity.json().items.filter((a: { type: string }) => a.type === 'AUTO_PUBLISHED')
+    expect(auto).toHaveLength(1)
+    expect(auto[0].message).toContain('Auto-published')
+
+    // A second run has nothing left to do.
+    const again = await publishDueContent()
+    expect(again.published).toBe(0)
+  })
+
+  it('leaves future-scheduled items scheduled', async () => {
+    const { id, cookie } = await createScheduled(new Date(Date.now() + 3_600_000).toISOString())
+    const result = await publishDueContent()
+    expect(result.published).toBe(0)
+    const item = await app.inject({ method: 'GET', url: `/api/v1/content/assignments/${id}`, headers: { cookie } })
+    expect(item.json().status).toBe('SCHEDULED')
+  })
+
+  it('refuses to schedule without a publish time', async () => {
+    const cookie = await login('pub@test.local')
+    const created = await app.inject({
+      method: 'POST',
+      url: '/api/v1/content/assignments',
+      headers: { cookie },
+      payload: { data: { title: { en: 'No schedule' }, client: 'Ministry' }, sourceReference: null, scheduledPublishAt: null, scheduledUnpublishAt: null },
+    })
+    const approve = await app.inject({
+      method: 'POST',
+      url: `/api/v1/content/assignments/${created.json().id}/transition`,
+      headers: { cookie },
+      payload: { to: 'REVIEW' },
+    })
+    expect(approve.statusCode).toBe(200)
+    const approved = await app.inject({
+      method: 'POST',
+      url: `/api/v1/content/assignments/${created.json().id}/transition`,
+      headers: { cookie },
+      payload: { to: 'APPROVED' },
+    })
+    expect(approved.statusCode).toBe(200)
+    const res = await app.inject({
+      method: 'POST',
+      url: `/api/v1/content/assignments/${created.json().id}/transition`,
+      headers: { cookie },
+      payload: { to: 'SCHEDULED' },
+    })
+    expect(res.statusCode).toBe(422)
+    expect(res.json().error.code).toBe('SCHEDULE_REQUIRED')
   })
 })

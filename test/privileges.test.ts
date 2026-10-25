@@ -63,6 +63,7 @@ describe('least-privilege runtime role', () => {
          UNION ALL SELECT has_table_privilege(current_user, 'public."ActivityLog"', 'SELECT')
          UNION ALL SELECT has_table_privilege(current_user, 'public."Session"', 'SELECT')
          UNION ALL SELECT has_table_privilege(current_user, 'public."Submission"', 'SELECT')
+         UNION ALL SELECT has_table_privilege(current_user, 'public."PasswordResetToken"', 'SELECT')
          UNION ALL SELECT has_table_privilege(current_user, 'public."ContentItem"', 'SELECT')
          UNION ALL SELECT has_table_privilege(current_user, 'public."Asset"', 'SELECT')
          UNION ALL SELECT has_table_privilege(current_user, 'public."SiteSetting"', 'SELECT')
@@ -156,6 +157,17 @@ describe('least-privilege runtime role', () => {
     const owner = new PrismaClient({ adapter: new PrismaPg({ connectionString: process.env.DIRECT_URL }) })
     await owner.$executeRawUnsafe(`DELETE FROM "Submission" WHERE "id" = 'priv-check'`)
     await owner.$disconnect()
+  })
+
+  it('may issue and consume reset tokens but never rewrite them', async () => {
+    const [row] = await app.$queryRawUnsafe<Record<string, boolean>[]>(
+      `SELECT has_table_privilege(current_user, 'public."PasswordResetToken"', 'INSERT') AS ins,
+              has_table_privilege(current_user, 'public."PasswordResetToken"', 'DELETE') AS del,
+              has_table_privilege(current_user, 'public."PasswordResetToken"', 'UPDATE') AS upd`,
+    )
+    expect(row.ins).toBe(true)
+    expect(row.del).toBe(true)
+    expect(row.upd).toBe(false)
   })
 
   it('cannot inherit the owner role or hold grant options', async () => {

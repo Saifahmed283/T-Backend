@@ -24,7 +24,11 @@ const listQuerySchema = z.object({
 
 // Cache for a minute, let a CDN/browser serve stale for five while we revalidate.
 const PUBLIC_CACHE = 'public, max-age=60, stale-while-revalidate=300'
-const publicRateLimit = { config: { rateLimit: { max: 300, timeWindow: '15 minutes' } } }
+// Public content is polled by open tabs (the site re-checks every 60s so a
+// published change appears without a deploy). One page load asks for several
+// collections, so 300 requests per 15 minutes was too tight for a couple of
+// tabs or a shared office IP. 900 still bounds abuse while leaving headroom.
+const publicRateLimit = { config: { rateLimit: { max: 900, timeWindow: '15 minutes' } } }
 
 export async function registerPublicRoutes(app: FastifyInstance) {
   // Read-only endpoints for the public marketing site. Deliberately

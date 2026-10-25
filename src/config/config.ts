@@ -31,6 +31,25 @@ const schema = z.object({
   // integration suite's many logins do not exhaust the bucket.
   RATE_LIMIT_MAX: z.coerce.number().int().positive().optional(),
   LOGIN_RATE_LIMIT_MAX: z.coerce.number().int().positive().optional(),
+  // In-process scheduled publishing. Every API instance runs the tick; a
+  // Postgres advisory lock ensures only one processes a given run, so rolling
+  // deployments and multiple instances stay safe. Off under test (the suite
+  // calls the job directly), on everywhere else.
+  SCHEDULER_ENABLED: booleanish.optional(),
+  SCHEDULER_INTERVAL_MS: z.coerce.number().int().min(1_000).default(60_000),
+  // Outbound email. Disabled by default so local and test runs are silent and
+  // a misconfigured deployment cannot accidentally send mail. `log` writes the
+  // rendered message to the server log; `memory` keeps it in-process for tests.
+  // A real transactional provider plugs in behind the same sendEmail() call.
+  EMAIL_ENABLED: booleanish.optional(),
+  EMAIL_PROVIDER: z.enum(['log', 'memory']).default('log'),
+  EMAIL_FROM: z.string().min(3).default('TerraMorph <notifications@askterramorph.com>'),
+  // Where new site submissions are announced. When unset, admin notices are
+  // skipped (receipts to the submitter still send when email is enabled).
+  ADMIN_NOTIFICATION_EMAIL: z.string().email().optional(),
+  // Password-reset links are single-use and expire quickly. The token itself is
+  // never stored; only an HMAC digest is.
+  PASSWORD_RESET_TTL_MINUTES: z.coerce.number().int().min(5).max(1_440).default(30),
   // Seed-only values. prisma/seed.ts reads these from the environment directly
   // and enforces its own rules, so the API must not require them to boot.
   SEED_ADMIN_EMAIL: z.string().email().default('admin@askterramorph.com'),
@@ -59,6 +78,12 @@ if (parsed.NODE_ENV === 'production' && parsed.SESSION_SECRET.startsWith('change
   throw new Error('SESSION_SECRET still holds its placeholder value; set a real secret before deploying')
 }
 
+// The in-memory provider exists only to make tests deterministic; it would
+// silently drop mail in production.
+if (parsed.NODE_ENV === 'production' && parsed.EMAIL_ENABLED && parsed.EMAIL_PROVIDER === 'memory') {
+  throw new Error('EMAIL_PROVIDER=memory is not available in production')
+}
+
 const isProduction = parsed.NODE_ENV === 'production'
 const isTest = parsed.NODE_ENV === 'test'
 
@@ -75,6 +100,10 @@ export const config = {
   TRUST_PROXY: parsed.TRUST_PROXY ?? isProduction,
   RATE_LIMIT_MAX: parsed.RATE_LIMIT_MAX ?? (isTest ? 1_000_000 : 100),
   LOGIN_RATE_LIMIT_MAX: parsed.LOGIN_RATE_LIMIT_MAX ?? (isTest ? 1_000_000 : 10),
+  SCHEDULER_ENABLED: parsed.SCHEDULER_ENABLED ?? !isTest,
+  SCHEDULER_INTERVAL_MS: parsed.SCHEDULER_INTERVAL_MS,
+  EMAIL_ENABLED: parsed.EMAIL_ENABLED ?? false,
+  PASSWORD_RESET_TTL_MS: parsed.PASSWORD_RESET_TTL_MINUTES * 60 * 1000,
   isProduction,
   isTest,
   // Uploads are only possible when every credential is present.
