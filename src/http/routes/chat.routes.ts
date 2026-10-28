@@ -140,9 +140,13 @@ export async function registerChatRoutes(app: FastifyInstance) {
           typeof error === 'object' && error !== null && 'status' in error
             ? Number((error as { status?: unknown }).status)
             : undefined
+        const errorMessage =
+          typeof error === 'object' && error !== null && 'message' in error
+            ? String((error as { message?: unknown }).message)
+            : String(error)
 
         request.log.warn(
-          { providerStatus: status },
+          { providerStatus: status, errorMessage },
           'Gemini chat request failed',
         )
 
