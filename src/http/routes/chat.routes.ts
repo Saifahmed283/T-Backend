@@ -60,7 +60,7 @@ export async function registerChatRoutes(app: FastifyInstance) {
             const provider = getAiProvider()
             const result = await provider.generate({
               system: SYSTEM_INSTRUCTION,
-              history: history.map((item) => ({
+              history: history.map((item: any) => ({
                 role: item.role,
                 text: item.text,
               })),
@@ -92,44 +92,49 @@ export async function registerChatRoutes(app: FastifyInstance) {
           })
         }
 
-        const contents = [
-          ...history.map((item) => ({
-            role:
-              item.role === 'assistant'
-                ? ('model' as const)
-                : ('user' as const),
-            parts: [{ text: item.text }],
-          })),
-          {
-            role: 'user' as const,
-            parts: [{ text: message }],
-          },
-        ]
+        try {
+          const contents = [
+            ...history.map((item: any) => ({
+              role:
+                item.role === 'assistant'
+                  ? ('model' as const)
+                  : ('user' as const),
+              parts: [{ text: item.text }],
+            })),
+            {
+              role: 'user' as const,
+              parts: [{ text: message }],
+            },
+          ]
 
-        const ai = getGeminiClient(apiKey)
+          const ai = getGeminiClient(apiKey)
 
-        const result = await ai.models.generateContent({
-          model: config.GEMINI_MODEL || process.env.GEMINI_MODEL || 'gemini-3.5-flash',
-          contents,
-          config: {
-            systemInstruction: SYSTEM_INSTRUCTION,
-            temperature: 0.3,
-            maxOutputTokens: config.AI_MAX_OUTPUT_TOKENS,
-          },
-        })
-
-        const answer = result.text?.trim()
-
-        if (!answer) {
-          return reply.status(502).send({
-            error: {
-              code: 'EMPTY_AI_RESPONSE',
-              message: 'Please try asking your question again.',
+          const result = await ai.models.generateContent({
+            model: config.GEMINI_MODEL || process.env.GEMINI_MODEL || 'gemini-3.5-flash',
+            contents,
+            config: {
+              systemInstruction: SYSTEM_INSTRUCTION,
+              temperature: 0.3,
+              maxOutputTokens: config.AI_MAX_OUTPUT_TOKENS,
             },
           })
-        }
 
-        return reply.send({ reply: answer })
+          const answer = result.text?.trim()
+
+          if (!answer) {
+            return reply.status(502).send({
+              error: {
+                code: 'EMPTY_AI_RESPONSE',
+                message: 'Please try asking your question again.',
+              },
+            })
+          }
+
+          return reply.send({ reply: answer })
+        } catch (geminiError) {
+          request.log.warn({ err: geminiError }, 'Gemini failed')
+          throw geminiError
+        }
       } catch (error) {
         const status =
           typeof error === 'object' && error !== null && 'status' in error
