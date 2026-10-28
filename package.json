@@ -34,7 +34,6 @@
     "@fastify/helmet": "^13.2.0",
     "@fastify/multipart": "^9.4.0",
     "@fastify/rate-limit": "^11.2.0",
-    "@google/genai": "^2.31.0",
     "@prisma/adapter-pg": "^7.10.1",
     "@prisma/client": "^7.10.1",
     "@types/node": "^22.10.7",
