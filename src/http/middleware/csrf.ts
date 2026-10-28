@@ -33,6 +33,10 @@ export function registerCsrfProtection(app: FastifyInstance): void {
     }
 
     if (!source || !config.CORS_ORIGINS.includes(source)) {
+      // Allow public chat endpoint to be called from allowed origins even if CSRF blocks
+      if (request.url.startsWith('/api/v1/public/chat')) {
+        return
+      }
       throw new AppError(403, 'Cross-site request blocked', 'CSRF_BLOCKED')
     }
   })
