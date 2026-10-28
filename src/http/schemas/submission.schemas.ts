@@ -23,7 +23,7 @@ export const createSubmissionSchema = z
     name: z.string().trim().min(1).max(160).optional(),
     message: z.string().trim().max(4000).optional(),
     source: z.string().trim().max(120).optional(),
-    payload: z.record(z.unknown()).optional(),
+    payload: z.record(z.string(), z.unknown()).optional(),
   })
   .strict()
   .superRefine((data, ctx) => {

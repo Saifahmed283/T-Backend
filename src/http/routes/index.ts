@@ -11,6 +11,7 @@ import { registerMemberRoutes } from './members.routes.js'
 import { registerPublicRoutes } from './public.routes.js'
 import { registerSettingsRoutes } from './settings.routes.js'
 import { registerSubmissionRoutes } from './submissions.routes.js'
+import { registerChatRoutes } from './chat.routes.js'
 
 export async function registerRoutes(app: FastifyInstance) {
   // Liveness: is the process up? Never touches the database.
@@ -41,4 +42,5 @@ export async function registerRoutes(app: FastifyInstance) {
   await registerAssetRoutes(app)
   await registerSettingsRoutes(app)
   await registerMemberRoutes(app)
+  await registerChatRoutes(app)
 }

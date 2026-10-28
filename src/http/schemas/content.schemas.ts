@@ -10,7 +10,7 @@ export const contentListQuerySchema = z.object({
   pageSize: z.coerce.number().int().min(1).max(100).default(20),
 })
 
-const localizedRecord = z.record(z.unknown())
+const localizedRecord = z.record(z.string(), z.unknown())
 
 export const createContentSchema = z
   .object({
