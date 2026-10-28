@@ -60,18 +60,6 @@ const schema = z.object({
   // Object storage for the media library. S3-compatible: leave STORAGE_DRIVER
   // unset to keep uploads disabled (the UI shows an honest banner) until real
   // credentials are supplied. Any S3-compatible endpoint works.
-  // AI Provider configuration
-  AI_PROVIDER: z.enum(['ollama', 'gemini']).default('ollama'),
-  OLLAMA_BASE_URL: z.string().url().default('http://127.0.0.1:11434'),
-  OLLAMA_CHAT_MODEL: z.string().default('qwen3:4b'),
-  OLLAMA_EMBED_MODEL: z.string().default('bge-m3'),
-  AI_REQUEST_TIMEOUT_MS: z.coerce.number().int().positive().default(45000),
-  AI_MAX_OUTPUT_TOKENS: z.coerce.number().int().positive().default(500),
-  AI_PUBLIC_RATE_LIMIT_MAX: z.coerce.number().int().positive().default(20),
-  // Legacy Gemini support (deprecated in favor of private model)
-  GEMINI_API_KEY: z.string().optional(),
-  GEMINI_MODEL: z.string().optional(),
-  // Object storage for the media library
   STORAGE_DRIVER: z.enum(['s3']).optional(),
   S3_ENDPOINT: z.string().url().optional(),
   S3_BUCKET: z.string().min(1).optional(),
