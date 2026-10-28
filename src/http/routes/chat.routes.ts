@@ -56,27 +56,27 @@ export async function registerChatRoutes(app: FastifyInstance) {
 
       try {
         if (config.AI_PROVIDER === 'ollama') {
-          const provider = getAiProvider()
-          const result = await provider.generate({
-            system: SYSTEM_INSTRUCTION,
-            history: history.map((item) => ({
-              role: item.role,
-              text: item.text,
-            })),
-            userMessage: message,
-            maxOutputTokens: config.AI_MAX_OUTPUT_TOKENS,
-          })
-
-          if (!result.text) {
-            return reply.status(502).send({
-              error: {
-                code: 'EMPTY_AI_RESPONSE',
-                message: 'Please try asking your question again.',
-              },
+          try {
+            const provider = getAiProvider()
+            const result = await provider.generate({
+              system: SYSTEM_INSTRUCTION,
+              history: history.map((item) => ({
+                role: item.role,
+                text: item.text,
+              })),
+              userMessage: message,
+              maxOutputTokens: config.AI_MAX_OUTPUT_TOKENS,
             })
-          }
 
-          return reply.send({ reply: result.text })
+            if (!result.text) {
+              throw new Error('Empty response from Ollama')
+            }
+
+            return reply.send({ reply: result.text })
+          } catch (ollamaError) {
+            request.log.warn({ err: ollamaError }, 'Ollama failed, trying Gemini fallback')
+            // Fall through to Gemini
+          }
         }
 
         // Fallback to Gemini if configured
