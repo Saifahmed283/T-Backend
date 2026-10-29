@@ -32,6 +32,27 @@ export const createSubmissionSchema = z
     if (data.kind !== 'CONTRIBUTION' && !data.email) {
       ctx.addIssue({ code: z.ZodIssueCode.custom, path: ['email'], message: 'An email address is required' })
     }
+
+    // Bound the public-facing payload so a malicious client cannot exfiltrate
+    // or inject unbounded data through the unauthenticated submission endpoint.
+    if (data.payload) {
+      const keys = Object.keys(data.payload)
+      if (keys.length > 20) {
+        ctx.addIssue({
+          code: z.ZodIssueCode.custom,
+          path: ['payload'],
+          message: 'Payload must contain 20 keys or fewer',
+        })
+      }
+      const serialized = JSON.stringify(data.payload)
+      if (serialized.length > 5_000) {
+        ctx.addIssue({
+          code: z.ZodIssueCode.custom,
+          path: ['payload'],
+          message: 'Payload must be 5,000 characters or fewer when serialized',
+        })
+      }
+    }
   })
 
 export const listSubmissionsSchema = z.object({

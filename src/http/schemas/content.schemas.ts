@@ -12,10 +12,22 @@ export const contentListQuerySchema = z.object({
 
 const localizedRecord = z.record(z.string(), z.unknown())
 
+const boundLocalizedRecord = (label: string) =>
+  localizedRecord.superRefine((value, ctx) => {
+    const serialized = JSON.stringify(value)
+    if (serialized.length > 50_000) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        path: [label],
+        message: `${label} must be 50,000 characters or fewer when serialized`,
+      })
+    }
+  })
+
 export const createContentSchema = z
   .object({
-    data: localizedRecord.default({}),
-    seo: localizedRecord.optional(),
+    data: boundLocalizedRecord('data').default({}),
+    seo: boundLocalizedRecord('seo').optional(),
     slug: z.string().trim().max(120).optional(),
     assignmentId: z.string().trim().max(50).nullable().optional(),
     sourceReference: z.string().trim().max(300).nullable().optional(),
@@ -26,8 +38,8 @@ export const createContentSchema = z
 
 export const updateContentSchema = z
   .object({
-    data: localizedRecord.optional(),
-    seo: localizedRecord.nullable().optional(),
+    data: boundLocalizedRecord('data').optional(),
+    seo: boundLocalizedRecord('seo').nullable().optional(),
     slug: z.string().trim().max(120).optional(),
     assignmentId: z.string().trim().max(50).nullable().optional(),
     sourceReference: z.string().trim().max(300).nullable().optional(),
