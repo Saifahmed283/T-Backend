@@ -52,7 +52,6 @@ async function main() {
       sector: 'Private',
       value: 999,
       status: 'BLOCKED',
-      stage: 'G0',
       workspaceId: wsB.id,
       leadId: userB.id,
     },

@@ -1117,28 +1117,6 @@ const audiences: SeedItem[] = [
   },
 ]
 
-const stages: SeedItem[] = [
-  ['G0', 'Mandate', 'التفويض', '1–2 wks', 'أسبوع–أسبوعان', 'Mandate note', 'مذكرة التفويض'],
-  ['G1', 'Diagnose', 'التشخيص', '2–4 wks', 'أسبوعان–أربعة', 'Binding-constraint diagnostic', 'تشخيص القيد الملزم'],
-  ['G2', 'Locate the lever', 'تحديد الرافعة', '1–2 wks', 'أسبوع–أسبوعان', 'Lever map', 'خريطة الرافعة'],
-  ['G3', 'Design', 'التصميم', '3–6 wks', 'ثلاثة–ستة أسابيع', 'Instrument design', 'تصميم الأداة'],
-  ['G4', 'Align', 'المواءمة', '2–4 wks', 'أسبوعان–أربعة', 'Consultation record', 'سجل التشاور'],
-  ['G5', 'Deliver', 'التنفيذ', 'Variable', 'متغيّر', 'Delivery dashboard', 'لوحة التنفيذ'],
-  ['G6', 'Measure', 'القياس', 'Quarterly', 'ربع سنوي', 'Verified results note', 'مذكرة نتائج موثقة'],
-  ['G7', 'Transfer', 'نقل المعرفة', '4–8 wks', 'أربعة–ثمانية أسابيع', 'Transfer kit & certified trainers', 'حزمة النقل والمدربون المعتمدون'],
-].map(([id, en, ar, timeEn, timeAr, outEn, outAr], index) => ({
-  slug: String(id).toLowerCase(),
-  title: { en: String(en), ar: String(ar) },
-  publishedAt: daysAgo(60 + index),
-  data: {
-    title: { en: String(en), ar: String(ar) },
-    time: { en: String(timeEn), ar: String(timeAr) },
-    output: { en: String(outEn), ar: String(outAr) },
-    order: index,
-    description: `${String(id)} — ${String(en)}.`,
-  },
-}))
-
 const collections: Array<{ id: string; kind: string; items: SeedItem[] }> = [
   { id: 'assignments', kind: 'ASSIGNMENT', items: assignments },
   { id: 'cases', kind: 'CASE', items: cases },
@@ -1150,7 +1128,6 @@ const collections: Array<{ id: string; kind: string; items: SeedItem[] }> = [
   { id: 'vacancies', kind: 'VACANCY', items: vacancies },
   { id: 'initiatives', kind: 'INITIATIVE', items: initiatives },
   { id: 'audiences', kind: 'AUDIENCE', items: audiences },
-  { id: 'stages', kind: 'STAGE', items: stages },
 ]
 
 export async function seedContent(prisma: PrismaClient, workspaceId: string, userId: string) {
