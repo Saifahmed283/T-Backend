@@ -56,6 +56,6 @@ export async function getAssignment(workspaceId: string, id: string) {
     },
   })
   // Returned as 404 rather than 403 so ids cannot be probed across tenants.
-  if (!assignment) throw new AppError(404, 'Assignment not found', 'NOT_FOUND')
+  if (!assignment) throw new AppError(404, 'Assignment not found', 'ASSIGNMENT_NOT_FOUND')
   return assignment
 }

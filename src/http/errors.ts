@@ -49,30 +49,68 @@ export function fatalLogFields(event: 'uncaught_exception' | 'unhandled_rejectio
 }
 
 export function registerErrorHandler(app: FastifyInstance) {
+  // Every failure uses the same envelope. `requestId` is Fastify's per-request
+  // id and appears in the server log line, so a user can quote it to support
+  // and the exact request can be found without exposing internals.
+  const envelope = (
+    requestId: string,
+    code: string,
+    message: string,
+    details?: unknown,
+  ) => ({ error: { code, message, requestId, ...(details === undefined ? {} : { details }) } })
+
   // Unknown routes must use the same { error: { code, message } } envelope as
   // every other failure, instead of Fastify's default shape.
-  app.setNotFoundHandler((_request: FastifyRequest, reply: FastifyReply) => {
-    return reply.status(404).send({ error: { code: 'NOT_FOUND', message: 'Route not found' } })
+  app.setNotFoundHandler((request: FastifyRequest, reply: FastifyReply) => {
+    return reply
+      .status(404)
+      .send(envelope(request.id, 'NOT_FOUND', 'Route not found'))
   })
 
   app.setErrorHandler((error: unknown, request: FastifyRequest, reply: FastifyReply) => {
     if (error instanceof ZodError) {
-      return reply.status(400).send({ error: { code: 'VALIDATION_ERROR', message: 'Invalid request', details: error.flatten() } })
+      return reply
+        .status(400)
+        .send(envelope(request.id, 'VALIDATION_ERROR', 'Invalid request', error.flatten()))
     }
     if (error instanceof AppError) {
-      return reply.status(error.statusCode).send({ error: { code: error.code, message: error.message } })
+      if (error.statusCode === 429 && error.retryAfterSeconds !== undefined) {
+        reply.header('Retry-After', String(Math.max(1, Math.ceil(error.retryAfterSeconds))))
+      }
+      return reply
+        .status(error.statusCode)
+        .send(envelope(request.id, error.code, error.message))
     }
     // Framework-level problems (bad media type, malformed JSON, unknown route)
     // carry an accurate 4xx status. Reporting them as 500 hides both the real
     // cause from the client and genuine server faults in the logs.
-    const candidate = error as { statusCode?: unknown; code?: unknown; message?: unknown }
+    const candidate = error as {
+      statusCode?: unknown
+      code?: unknown
+      message?: unknown
+      retryAfterSeconds?: unknown
+      ttl?: unknown
+    }
     const statusCode = typeof candidate.statusCode === 'number' ? candidate.statusCode : 500
     if (statusCode >= 400 && statusCode < 500) {
       const code = typeof candidate.code === 'string' ? candidate.code : 'BAD_REQUEST'
       const message = typeof candidate.message === 'string' ? candidate.message : 'Invalid request'
-      return reply.status(statusCode).send({ error: { code, message } })
+      if (statusCode === 429) {
+        // The rate-limit plugin reports the window in milliseconds as `ttl`;
+        // an explicit retryAfterSeconds wins when a route supplies one.
+        const seconds =
+          typeof candidate.retryAfterSeconds === 'number'
+            ? candidate.retryAfterSeconds
+            : typeof candidate.ttl === 'number'
+              ? candidate.ttl / 1000
+              : 60
+        reply.header('Retry-After', String(Math.max(1, Math.ceil(seconds))))
+      }
+      return reply.status(statusCode).send(envelope(request.id, code, message))
     }
     app.log.error(errorLogFields(error, request, statusCode), 'Unhandled request error')
-    return reply.status(500).send({ error: { code: 'INTERNAL_ERROR', message: 'An unexpected error occurred' } })
+    return reply
+      .status(500)
+      .send(envelope(request.id, 'INTERNAL_ERROR', 'An unexpected error occurred'))
   })
 }

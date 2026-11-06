@@ -1,7 +1,7 @@
 import { z } from 'zod'
 import { ALL_STATUSES } from '../../modules/content/content.service.js'
 
-export const contentStatusSchema = z.enum(ALL_STATUSES)
+export const contentStatusSchema = z.enum(ALL_STATUSES, 'Choose a valid status')
 
 export const contentListQuerySchema = z.object({
   status: contentStatusSchema.optional(),
@@ -30,11 +30,19 @@ export const createContentSchema = z
   .object({
     data: boundLocalizedRecord('data').default({}),
     seo: boundLocalizedRecord('seo').optional(),
-    slug: z.string().trim().max(120).optional(),
+    slug: z.string().trim().max(120, 'Slug must be 120 characters or fewer').optional(),
     assignmentId: z.string().trim().max(50).nullable().optional(),
-    sourceReference: z.string().trim().max(300).nullable().optional(),
-    scheduledPublishAt: z.string().datetime().nullable().optional(),
-    scheduledUnpublishAt: z.string().datetime().nullable().optional(),
+    sourceReference: z.string().trim().max(300, 'Source reference must be 300 characters or fewer').nullable().optional(),
+    scheduledPublishAt: z
+      .string()
+      .datetime('Enter a valid publish date and time')
+      .nullable()
+      .optional(),
+    scheduledUnpublishAt: z
+      .string()
+      .datetime('Enter a valid unpublish date and time')
+      .nullable()
+      .optional(),
   })
   .strict()
 
@@ -42,11 +50,19 @@ export const updateContentSchema = z
   .object({
     data: boundLocalizedRecord('data').optional(),
     seo: boundLocalizedRecord('seo').nullable().optional(),
-    slug: z.string().trim().max(120).optional(),
+    slug: z.string().trim().max(120, 'Slug must be 120 characters or fewer').optional(),
     assignmentId: z.string().trim().max(50).nullable().optional(),
-    sourceReference: z.string().trim().max(300).nullable().optional(),
-    scheduledPublishAt: z.string().datetime().nullable().optional(),
-    scheduledUnpublishAt: z.string().datetime().nullable().optional(),
+    sourceReference: z.string().trim().max(300, 'Source reference must be 300 characters or fewer').nullable().optional(),
+    scheduledPublishAt: z
+      .string()
+      .datetime('Enter a valid publish date and time')
+      .nullable()
+      .optional(),
+    scheduledUnpublishAt: z
+      .string()
+      .datetime('Enter a valid unpublish date and time')
+      .nullable()
+      .optional(),
   })
   .strict()
 

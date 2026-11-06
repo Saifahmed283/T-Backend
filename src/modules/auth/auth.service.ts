@@ -85,20 +85,15 @@ const MAX_FAILED_ATTEMPTS = 5
 const LOCKOUT_DURATION_MS = 15 * 60 * 1000 // 15 minutes
 
 async function recordFailedLogin(email: string): Promise<void> {
-  const now = new Date()
-  const lockoutUntil = new Date(now.getTime() + LOCKOUT_DURATION_MS)
-  // Use upsert to handle unknown emails gracefully - create a minimal record if not exists
-  await prisma.user.upsert({
+  const lockoutUntil = new Date(Date.now() + LOCKOUT_DURATION_MS)
+  // Only update accounts that exist. Creating a placeholder row for an unknown
+  // address would leave a password-less user behind, and a later invite would
+  // then treat them as an existing account and never issue a temporary
+  // password. An unknown address has nothing to lock out anyway.
+  await prisma.user.updateMany({
     where: { email: email.toLowerCase() },
-    update: {
+    data: {
       failedLoginAttempts: { increment: 1 },
-      lockoutUntil: { set: lockoutUntil },
-    },
-    create: {
-      email: email.toLowerCase(),
-      name: 'Unknown',
-      passwordHash: null,
-      failedLoginAttempts: 1,
       lockoutUntil,
     },
   })
@@ -121,8 +116,14 @@ async function checkLockout(email: string): Promise<void> {
   })
   if (!user) return
   if (user.failedLoginAttempts >= MAX_FAILED_ATTEMPTS && user.lockoutUntil && user.lockoutUntil > new Date()) {
-    const minutes = Math.ceil((user.lockoutUntil.getTime() - Date.now()) / 60000)
-    throw new AppError(429, `Too many failed attempts. Try again in ${minutes} minutes.`, 'ACCOUNT_LOCKED')
+    const seconds = Math.max(1, Math.ceil((user.lockoutUntil.getTime() - Date.now()) / 1000))
+    const minutes = Math.ceil(seconds / 60)
+    throw new AppError(
+      429,
+      `Too many failed attempts. Try again in ${minutes} minutes.`,
+      'ACCOUNT_LOCKED',
+      seconds,
+    )
   }
 }
 

@@ -5,17 +5,26 @@
 //                                                         (login creates, logout
 //                                                          deletes, resolveSession
 //                                                          slides idle timeout)
-//   User              SELECT, UPDATE(passwordHash)
+//   User              SELECT, INSERT, UPDATE(name, email, passwordHash, updatedAt,
+//                                            failedLoginAttempts, lockoutUntil)
+//                                                         (invites create users,
+//                                                          profile edits,
+//                                                          password change, and
+//                                                          login lockout counters)
 //   Assignment        SELECT
 //   Expert            SELECT
 //   ActivityLog       SELECT, INSERT             (content edits append audit rows)
-//   Submission        SELECT, INSERT             (public site writes, admins read)
+//   Submission        SELECT, INSERT, UPDATE, DELETE
+//                                                         (public site writes,
+//                                                          admins triage rows)
 //   PasswordResetToken SELECT, INSERT, DELETE    (issue, consume, invalidate)
 //   ContentItem       SELECT, INSERT, UPDATE, DELETE   (content workspace CRUD)
 //   Asset             SELECT, INSERT, UPDATE, DELETE   (media library)
 //   SiteSetting       SELECT, INSERT, UPDATE, DELETE   (website configuration)
 //   Workspace         SELECT
-//   WorkspaceMember   SELECT, UPDATE(role)       (admins promote/demote members)
+//   WorkspaceMember   SELECT, INSERT, DELETE, UPDATE(role, suspendedAt)
+//                                                         (admins invite, remove,
+//                                                          promote/demote, suspend)
 //   _prisma_migrations SELECT                    (so migrate deploy works)
 //   public enum types USAGE                     (Prisma binds enum parameters)
 //
@@ -93,20 +102,28 @@ async function main() {
       await tx.$executeRawUnsafe(`GRANT INSERT, DELETE ON "Session" TO "${APP}"`)
       // resolveSession slides the idle window forward by stamping lastUsedAt.
       await tx.$executeRawUnsafe(`GRANT UPDATE ("lastUsedAt") ON "Session" TO "${APP}"`)
-      // Public site submissions are inserts; admins read them. No UPDATE/DELETE.
-      await tx.$executeRawUnsafe(`GRANT INSERT ON "Submission" TO "${APP}"`)
+      // Public site submissions are inserts; admins triage rows (status) and
+      // delete spam.
+      await tx.$executeRawUnsafe(`GRANT INSERT, UPDATE, DELETE ON "Submission" TO "${APP}"`)
       // Content edits append audit rows; they are never updated or deleted.
       await tx.$executeRawUnsafe(`GRANT INSERT ON "ActivityLog" TO "${APP}"`)
       // Reset links: issue, consume and invalidate. No UPDATE, so a stored
       // digest cannot be re-pointed at another user.
       await tx.$executeRawUnsafe(`GRANT INSERT, DELETE ON "PasswordResetToken" TO "${APP}"`)
-      // Admins promote/demote members by rewriting the role column only.
-      await tx.$executeRawUnsafe(`GRANT UPDATE ("role") ON "WorkspaceMember" TO "${APP}"`)
+      // Admins invite and remove members, promote/demote by rewriting the role
+      // column, and suspend/resume by rewriting suspendedAt.
+      await tx.$executeRawUnsafe(`GRANT INSERT, DELETE ON "WorkspaceMember" TO "${APP}"`)
+      await tx.$executeRawUnsafe(`GRANT UPDATE ("role", "suspendedAt") ON "WorkspaceMember" TO "${APP}"`)
       // Content workspace tables: full DML, updatedAt is written by @updatedAt.
       await tx.$executeRawUnsafe(`GRANT INSERT, UPDATE, DELETE ON ${CMS_TABLES.join(', ')} TO "${APP}"`)
-      // Password change writes passwordHash; Prisma's @updatedAt also writes
-      // updatedAt on every update, so both columns are required.
-      await tx.$executeRawUnsafe(`GRANT UPDATE ("passwordHash", "updatedAt") ON "User" TO "${APP}"`)
+      // Invites create users; profile edits rewrite name/email; password change
+      // writes passwordHash; login lockout rewrites the attempt counters.
+      // Prisma's @updatedAt also writes updatedAt on every update, so it is
+      // required. No DELETE: removing a member never deletes the account.
+      await tx.$executeRawUnsafe(`GRANT INSERT ON "User" TO "${APP}"`)
+      await tx.$executeRawUnsafe(
+        `GRANT UPDATE ("name", "email", "passwordHash", "updatedAt", "failedLoginAttempts", "lockoutUntil") ON "User" TO "${APP}"`,
+      )
       await tx.$executeRawUnsafe(`GRANT USAGE ON SCHEMA public TO "${APP}"`)
 
       // Enum parameter binding.
@@ -138,10 +155,15 @@ async function main() {
 
   const probe = await owner.$queryRawUnsafe<Record<string, boolean>[]>(
     `SELECT has_table_privilege($1,'public."User"','SELECT')                  AS user_select,
+            has_table_privilege($1,'public."User"','INSERT')                  AS user_insert,
             has_table_privilege($1,'public."User"','UPDATE')                  AS user_update_full,
             has_column_privilege($1,'public."User"','passwordHash','UPDATE') AS user_update_password,
             has_column_privilege($1,'public."User"','updatedAt','UPDATE')    AS user_update_updatedat,
-            has_column_privilege($1,'public."User"','email','UPDATE')        AS user_update_email,
+            has_column_privilege($1,'public."User"','failedLoginAttempts','UPDATE') AS user_update_failed,
+            has_column_privilege($1,'public."User"','lockoutUntil','UPDATE')  AS user_update_lockout,
+            has_column_privilege($1,'public."User"','name','UPDATE')          AS user_update_name,
+            has_column_privilege($1,'public."User"','email','UPDATE')         AS user_update_email,
+            has_table_privilege($1,'public."User"','DELETE')                  AS user_delete,
             has_table_privilege($1,'public."Session"','INSERT')               AS session_insert,
             has_table_privilege($1,'public."Session"','DELETE')               AS session_delete,
             has_table_privilege($1,'public."Session"','SELECT')               AS session_select,
@@ -150,6 +172,7 @@ async function main() {
             has_table_privilege($1,'public."Submission"','SELECT')            AS submission_select,
             has_table_privilege($1,'public."Submission"','INSERT')            AS submission_insert,
             has_table_privilege($1,'public."Submission"','UPDATE')            AS submission_update,
+            has_table_privilege($1,'public."Submission"','DELETE')            AS submission_delete,
             has_table_privilege($1,'public."Expert"','SELECT')                AS expert_select,
             has_table_privilege($1,'public."Expert"','INSERT')                AS expert_insert,
             has_table_privilege($1,'public."Assignment"','SELECT')            AS assignment_select,
@@ -157,7 +180,10 @@ async function main() {
             has_table_privilege($1,'public."ActivityLog"','SELECT')           AS activity_select,
             has_table_privilege($1,'public."ActivityLog"','INSERT')           AS activity_insert,
             has_table_privilege($1,'public."WorkspaceMember"','SELECT')       AS member_select,
+            has_table_privilege($1,'public."WorkspaceMember"','INSERT')       AS member_insert,
+            has_table_privilege($1,'public."WorkspaceMember"','DELETE')       AS member_delete,
             has_column_privilege($1,'public."WorkspaceMember"','role','UPDATE') AS member_update_role,
+            has_column_privilege($1,'public."WorkspaceMember"','suspendedAt','UPDATE') AS member_update_suspended,
             has_table_privilege($1,'public."PasswordResetToken"','SELECT')     AS reset_select,
             has_table_privilege($1,'public."PasswordResetToken"','INSERT')     AS reset_insert,
             has_table_privilege($1,'public."PasswordResetToken"','DELETE')     AS reset_delete,

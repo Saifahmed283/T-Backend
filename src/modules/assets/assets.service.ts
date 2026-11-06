@@ -119,7 +119,7 @@ export async function createAsset(input: CreateAssetInput) {
 
 export async function updateAsset(workspaceId: string, id: string, alt: { en?: string; ar?: string } | null) {
   const existing = await prisma.asset.findFirst({ where: { id, workspaceId }, select: { id: true } })
-  if (!existing) throw new AppError(404, 'Asset not found', 'NOT_FOUND')
+  if (!existing) throw new AppError(404, 'Asset not found', 'ASSET_NOT_FOUND')
   return prisma.asset.update({
     where: { id },
     data: { alt: alt ? (alt as Prisma.InputJsonValue) : Prisma.JsonNull },
@@ -129,7 +129,7 @@ export async function updateAsset(workspaceId: string, id: string, alt: { en?: s
 
 export async function deleteAsset(workspaceId: string, id: string) {
   const existing = await prisma.asset.findFirst({ where: { id, workspaceId }, select: { id: true, storageKey: true } })
-  if (!existing) throw new AppError(404, 'Asset not found', 'NOT_FOUND')
+  if (!existing) throw new AppError(404, 'Asset not found', 'ASSET_NOT_FOUND')
   await deleteObject(existing.storageKey).catch(() => undefined)
   await prisma.asset.delete({ where: { id } })
   return { id, deleted: true }

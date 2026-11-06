@@ -1,14 +1,25 @@
 import { z } from 'zod'
 
+/**
+ * A URL that may also be cleared. `z.string().url()` already accepts http(s);
+ * the explicit message is what the dashboard surfaces under the field.
+ */
+const urlField = (label: string) =>
+  z.string().url(`${label} must be a valid URL, for example https://example.com`).optional().or(z.literal(''))
+
 export const socialLinksSchema = z.object({
-  linkedin: z.string().url().optional().or(z.literal('')),
-  twitter: z.string().url().optional().or(z.literal('')),
-  youtube: z.string().url().optional().or(z.literal('')),
-  instagram: z.string().url().optional().or(z.literal('')),
+  linkedin: urlField('LinkedIn URL'),
+  twitter: urlField('X URL'),
+  youtube: urlField('YouTube URL'),
+  instagram: urlField('Instagram URL'),
 })
 
 export const contactSchema = z.object({
-  email: z.string().email().optional().or(z.literal('')),
+  email: z
+    .string()
+    .email('Enter a valid email address')
+    .optional()
+    .or(z.literal('')),
   phone: z.string().optional().or(z.literal('')),
   address: z.string().optional().or(z.literal('')),
 })
@@ -17,14 +28,14 @@ export const legalSchema = z.object({
   companyName: z.string().optional().or(z.literal('')),
   registrationNumber: z.string().optional().or(z.literal('')),
   vatNumber: z.string().optional().or(z.literal('')),
-  privacyPolicyUrl: z.string().url().optional().or(z.literal('')),
-  termsOfServiceUrl: z.string().url().optional().or(z.literal('')),
+  privacyPolicyUrl: urlField('Privacy policy URL'),
+  termsOfServiceUrl: urlField('Terms of service URL'),
 })
 
 export const seoSchema = z.object({
   defaultTitle: z.string().optional().or(z.literal('')),
   defaultDescription: z.string().optional().or(z.literal('')),
-  defaultImage: z.string().url().optional().or(z.literal('')),
+  defaultImage: urlField('Default social image URL'),
   twitterHandle: z.string().optional().or(z.literal('')),
 })
 
@@ -33,7 +44,7 @@ export const heroSchema = z.object({
   subheadline: z.string().optional().or(z.literal('')),
   ctaText: z.string().optional().or(z.literal('')),
   ctaUrl: z.string().optional().or(z.literal('')),
-  backgroundImage: z.string().url().optional().or(z.literal('')),
+  backgroundImage: urlField('Hero background image URL'),
 })
 
 export const announcementSchema = z.object({
@@ -41,8 +52,8 @@ export const announcementSchema = z.object({
   message: z.string().optional().or(z.literal('')),
   messageAr: z.string().optional().or(z.literal('')),
   linkText: z.string().optional().or(z.literal('')),
-  linkUrl: z.string().url().optional().or(z.literal('')),
-  type: z.enum(['info', 'warning', 'success']).optional(),
+  linkUrl: urlField('Announcement link URL'),
+  type: z.enum(['info', 'warning', 'success'], 'Choose info, warning, or success').optional(),
 })
 
 export const siteSettingsSchema = z.object({

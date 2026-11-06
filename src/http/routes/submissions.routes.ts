@@ -63,7 +63,7 @@ export async function registerSubmissionRoutes(app: FastifyInstance) {
   app.get('/api/v1/submissions/:id', { preHandler: [requireAuth, requireRole('admin')] }, async (request, reply) => {
     const { id } = submissionParamsSchema.parse(request.params)
     const item = await getSubmission(id)
-    if (!item) return reply.status(404).send({ error: { code: 'NOT_FOUND', message: 'Submission not found' } })
+    if (!item) return reply.status(404).send({ error: { code: 'SUBMISSION_NOT_FOUND', message: 'Submission not found' } })
     return reply.send(item)
   })
 

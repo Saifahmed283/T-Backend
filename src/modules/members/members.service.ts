@@ -50,7 +50,7 @@ export async function updateMemberRole(input: {
     where: { workspaceId_userId: { workspaceId: input.workspaceId, userId: input.userId } },
     select: { role: true },
   })
-  if (!membership) throw new AppError(404, 'Member not found', 'NOT_FOUND')
+  if (!membership) throw new AppError(404, 'Member not found', 'MEMBER_NOT_FOUND')
 
   if (membership.role === 'admin' && input.role !== 'admin') {
     const admins = await prisma.workspaceMember.count({ where: { workspaceId: input.workspaceId, role: 'admin' } })
@@ -90,7 +90,7 @@ export async function updateMemberInfo(input: {
     where: { workspaceId_userId: { workspaceId: input.workspaceId, userId: input.userId } },
     select: { role: true, user: { select: { email: true } } },
   })
-  if (!membership) throw new AppError(404, 'Member not found', 'NOT_FOUND')
+  if (!membership) throw new AppError(404, 'Member not found', 'MEMBER_NOT_FOUND')
 
   // Check email uniqueness within workspace
   const existing = await prisma.user.findUnique({ where: { email: input.email } })
@@ -135,7 +135,7 @@ export async function suspendMember(input: {
     where: { workspaceId_userId: { workspaceId: input.workspaceId, userId: input.userId } },
     select: { role: true, suspendedAt: true, user: { select: { name: true, email: true } } },
   })
-  if (!membership) throw new AppError(404, 'Member not found', 'NOT_FOUND')
+  if (!membership) throw new AppError(404, 'Member not found', 'MEMBER_NOT_FOUND')
   if (membership.suspendedAt) throw new AppError(409, 'Member is already suspended', 'ALREADY_SUSPENDED')
 
   return prisma.$transaction(async (tx) => {
@@ -170,7 +170,7 @@ export async function resumeMember(input: {
     where: { workspaceId_userId: { workspaceId: input.workspaceId, userId: input.userId } },
     select: { suspendedAt: true, user: { select: { name: true } } },
   })
-  if (!membership) throw new AppError(404, 'Member not found', 'NOT_FOUND')
+  if (!membership) throw new AppError(404, 'Member not found', 'MEMBER_NOT_FOUND')
   if (!membership.suspendedAt) throw new AppError(409, 'Member is not suspended', 'NOT_SUSPENDED')
 
   return prisma.$transaction(async (tx) => {
@@ -204,7 +204,7 @@ export async function deleteMember(input: {
     where: { workspaceId_userId: { workspaceId: input.workspaceId, userId: input.userId } },
     select: { role: true, user: { select: { name: true, email: true } } },
   })
-  if (!membership) throw new AppError(404, 'Member not found', 'NOT_FOUND')
+  if (!membership) throw new AppError(404, 'Member not found', 'MEMBER_NOT_FOUND')
 
   if (membership.role === 'admin') {
     const admins = await prisma.workspaceMember.count({ where: { workspaceId: input.workspaceId, role: 'admin' } })

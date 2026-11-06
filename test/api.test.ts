@@ -403,6 +403,67 @@ describe('error envelope and readiness', () => {
     expect(res.json().error.code).toBe('NOT_FOUND')
   })
 
+  it('includes a requestId in every error envelope so support can trace it', async () => {
+    const cases = [
+      { res: await app.inject({ method: 'GET', url: '/api/v1/does-not-exist' }) },
+      { res: await app.inject({ method: 'GET', url: '/api/v1/members' }) },
+      {
+        res: await app.inject({
+          method: 'POST',
+          url: '/api/v1/auth/login',
+          payload: { email: 'not-an-email', password: '' },
+        }),
+      },
+    ]
+
+    for (const { res } of cases) {
+      const requestId = res.json().error?.requestId
+      expect(typeof requestId).toBe('string')
+      expect(requestId.length).toBeGreaterThan(0)
+    }
+  })
+
+  it('returns explicit validation messages per field', async () => {
+    const res = await app.inject({
+      method: 'POST',
+      url: '/api/v1/auth/login',
+      payload: { email: 'not-an-email', password: '' },
+    })
+    expect(res.statusCode).toBe(400)
+    const error = res.json().error
+    expect(error.code).toBe('VALIDATION_ERROR')
+    expect(error.details.fieldErrors.email).toContain('Enter a valid email address')
+    expect(error.details.fieldErrors.password).toContain('Password is required')
+  })
+
+  it('locks an account after repeated failures with 429 and Retry-After', async () => {
+    // Five wrong passwords trip the lockout counter.
+    for (let attempt = 1; attempt <= 5; attempt += 1) {
+      const res = await app.inject({
+        method: 'POST',
+        url: '/api/v1/auth/login',
+        payload: { email: 'a@test.local', password: 'wrong-password' },
+      })
+      expect(res.statusCode, `attempt ${attempt}`).toBe(401)
+      expect(res.json().error.code).toBe('INVALID_CREDENTIALS')
+    }
+
+    // The next attempt is refused before the password is even checked.
+    const locked = await app.inject({
+      method: 'POST',
+      url: '/api/v1/auth/login',
+      payload: { email: 'a@test.local', password: PASSWORD },
+    })
+    expect(locked.statusCode).toBe(429)
+    expect(locked.json().error.code).toBe('ACCOUNT_LOCKED')
+
+    const retryAfter = Number(locked.headers['retry-after'])
+    expect(Number.isFinite(retryAfter)).toBe(true)
+    expect(retryAfter).toBeGreaterThan(0)
+    // The lockout window is 15 minutes, so the wait cannot exceed it.
+    expect(retryAfter).toBeLessThanOrEqual(15 * 60)
+  })
+
   it('reports database readiness', async () => {
     const res = await app.inject({ method: 'GET', url: '/health/ready' })
     expect(res.statusCode).toBe(200)
@@ -495,7 +556,7 @@ describe('public website content', () => {
     expect(list.json().items).toHaveLength(0)
     const detail = await app.inject({ method: 'GET', url: '/api/v1/public/content/publications/secret-draft' })
     expect(detail.statusCode).toBe(404)
-    expect(detail.json().error.code).toBe('NOT_FOUND')
+    expect(detail.json().error.code).toBe('CONTENT_NOT_FOUND')
   })
 
   it('hides content scheduled to unpublish in the past', async () => {
@@ -558,7 +619,7 @@ describe('public website content', () => {
   it('rejects an unknown collection', async () => {
     const res = await app.inject({ method: 'GET', url: '/api/v1/public/content/nonsense' })
     expect(res.statusCode).toBe(404)
-    expect(res.json().error.code).toBe('NOT_FOUND')
+    expect(res.json().error.code).toBe('COLLECTION_NOT_FOUND')
   })
 
   it('serves public site settings for the public workspace', async () => {

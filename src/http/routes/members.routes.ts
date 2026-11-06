@@ -13,13 +13,20 @@ import {
 import { principalOf, requireAuth, requireRole } from '../middleware/requireAuth.js'
 
 const memberParamsSchema = z.object({ userId: z.string().min(1).max(50) })
-const roleBodySchema = z.object({ role: z.enum(MEMBER_ROLES) }).strict()
-const updateInfoBodySchema = z.object({ name: z.string().min(1).max(100), email: z.string().email() }).strict()
-const inviteBodySchema = z.object({
-  email: z.string().email(),
-  name: z.string().min(1).max(100),
-  role: z.enum(MEMBER_ROLES),
-}).strict()
+const roleBodySchema = z.object({ role: z.enum(MEMBER_ROLES, 'Choose a valid role') }).strict()
+const updateInfoBodySchema = z
+  .object({
+    name: z.string().min(1, 'Name is required').max(100, 'Name must be 100 characters or fewer'),
+    email: z.string().email('Enter a valid email address'),
+  })
+  .strict()
+const inviteBodySchema = z
+  .object({
+    email: z.string().email('Enter a valid email address'),
+    name: z.string().min(1, 'Name is required').max(100, 'Name must be 100 characters or fewer'),
+    role: z.enum(MEMBER_ROLES, 'Choose a valid role'),
+  })
+  .strict()
 
 export async function registerMemberRoutes(app: FastifyInstance) {
   app.get('/api/v1/members', { preHandler: requireAuth }, async (request, reply) => {

@@ -50,7 +50,7 @@ export async function registerPublicRoutes(app: FastifyInstance) {
     const item = await cachedPublic(['item', collectionId, slug], () =>
       getPublicContent(config.PUBLIC_WORKSPACE_SLUG, collectionId, slug),
     )
-    if (!item) throw new AppError(404, 'Content not found', 'NOT_FOUND')
+    if (!item) throw new AppError(404, 'Content not found', 'CONTENT_NOT_FOUND')
     return reply.header('Cache-Control', PUBLIC_CACHE).send(item)
   })
 

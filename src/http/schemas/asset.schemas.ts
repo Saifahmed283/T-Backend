@@ -10,7 +10,10 @@ export const assetListQuerySchema = z.object({
 export const altBodySchema = z
   .object({
     alt: z
-      .object({ en: z.string().trim().max(300).optional(), ar: z.string().trim().max(300).optional() })
+      .object({
+        en: z.string().trim().max(300, 'English alt text must be 300 characters or fewer').optional(),
+        ar: z.string().trim().max(300, 'Arabic alt text must be 300 characters or fewer').optional(),
+      })
       .nullable(),
   })
   .strict()

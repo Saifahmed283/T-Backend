@@ -26,7 +26,7 @@ export class ContentServiceError extends AppError {}
 
 function toKind(collectionId: string): string {
   const kind = kindForCollectionId(collectionId)
-  if (!kind) throw new AppError(404, `Unknown collection "${collectionId}"`, 'NOT_FOUND')
+  if (!kind) throw new AppError(404, `Unknown collection "${collectionId}"`, 'COLLECTION_NOT_FOUND')
   return kind
 }
 
@@ -56,7 +56,7 @@ function cleanLocalizedValue(value: unknown): { en?: string; ar?: string } | und
 // arbitrary keys. Localized fields accept { en, ar }; others take the raw value.
 export function normalizeData(collectionId: string, input: unknown): Record<string, unknown> {
   const collection = collectionById(collectionId)
-  if (!collection) throw new AppError(404, `Unknown collection "${collectionId}"`, 'NOT_FOUND')
+  if (!collection) throw new AppError(404, `Unknown collection "${collectionId}"`, 'COLLECTION_NOT_FOUND')
   const source = (input ?? {}) as Record<string, unknown>
   const data: Record<string, unknown> = {}
   for (const field of collection.fields) {
@@ -214,7 +214,7 @@ export async function getContent(workspaceId: string, id: string) {
       },
     },
   })
-  if (!item) throw new AppError(404, 'Content not found', 'NOT_FOUND')
+  if (!item) throw new AppError(404, 'Content not found', 'CONTENT_NOT_FOUND')
   return item
 }
 
@@ -294,7 +294,7 @@ export type UpdateContentInput = {
 
 export async function updateContent(input: UpdateContentInput) {
   const existing = await prisma.contentItem.findFirst({ where: { id: input.id, workspaceId: input.workspaceId } })
-  if (!existing) throw new AppError(404, 'Content not found', 'NOT_FOUND')
+  if (!existing) throw new AppError(404, 'Content not found', 'CONTENT_NOT_FOUND')
   const collectionId = collectionIdFromKind(existing.kind)
   if (!collectionId) throw new AppError(500, 'Stored content kind is not recognised', 'INTERNAL_ERROR')
 
@@ -342,7 +342,7 @@ export type TransitionInput = {
 
 export async function transitionContent(input: TransitionInput) {
   const existing = await prisma.contentItem.findFirst({ where: { id: input.id, workspaceId: input.workspaceId } })
-  if (!existing) throw new AppError(404, 'Content not found', 'NOT_FOUND')
+  if (!existing) throw new AppError(404, 'Content not found', 'CONTENT_NOT_FOUND')
   const to = input.to.toUpperCase()
   const allowed = TRANSITIONS[existing.status] ?? []
   if (!allowed.includes(to)) {
@@ -397,7 +397,7 @@ export async function transitionContent(input: TransitionInput) {
 
 export async function deleteContent(workspaceId: string, id: string, userId: string) {
   const existing = await prisma.contentItem.findFirst({ where: { id, workspaceId } })
-  if (!existing) throw new AppError(404, 'Content not found', 'NOT_FOUND')
+  if (!existing) throw new AppError(404, 'Content not found', 'CONTENT_NOT_FOUND')
   await logActivity({
     workspaceId,
     type: 'CONTENT_UPDATED',

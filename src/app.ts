@@ -95,8 +95,9 @@ export async function buildApp() {
     max: config.RATE_LIMIT_MAX,
     timeWindow: '15 minutes',
     errorResponseBuilder: (_request, context) => {
-      const error = new Error(`Too many requests. Try again in ${context.ttl ? Math.ceil(context.ttl / 1000) : 900} seconds.`)
-      Object.assign(error, { statusCode: 429, code: 'RATE_LIMITED' })
+      const seconds = context.ttl ? Math.ceil(context.ttl / 1000) : 900
+      const error = new Error(`Too many requests. Try again in ${seconds} seconds.`)
+      Object.assign(error, { statusCode: 429, code: 'RATE_LIMITED', retryAfterSeconds: seconds })
       return error
     },
   })
