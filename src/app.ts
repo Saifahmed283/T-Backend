@@ -1,4 +1,5 @@
 import Fastify from 'fastify'
+import compress from '@fastify/compress'
 import rateLimit from '@fastify/rate-limit'
 import cookie from '@fastify/cookie'
 import cors from '@fastify/cors'
@@ -8,6 +9,7 @@ import { config } from './config/config.js'
 import { HttpError, registerErrorHandler } from './http/errors.js'
 import { registerCsrfProtection } from './http/middleware/csrf.js'
 import { registerRoutes } from './http/routes/index.js'
+import { configureJobQueue } from './lib/job-queue.js'
 
 export async function buildApp() {
   const app = Fastify({
@@ -18,11 +20,40 @@ export async function buildApp() {
   })
 
   await app.register(helmet, {
-    // The API serves JSON, not HTML, so a CSP adds nothing. Resource policy is
-    // opened up so the browser may read responses from the site's origin.
-    contentSecurityPolicy: false,
-    crossOriginResourcePolicy: { policy: 'cross-origin' },
-    crossOriginEmbedderPolicy: false,
+    // The API serves JSON, not HTML. CSP is configured to allow only
+    // same-origin resources and disallow inline scripts/styles.
+    contentSecurityPolicy: {
+      directives: {
+        defaultSrc: ["'none'"],
+        scriptSrc: ["'none'"],
+        styleSrc: ["'none'"],
+        imgSrc: ["'none'"],
+        connectSrc: ["'self'"],
+        fontSrc: ["'none'"],
+        objectSrc: ["'none'"],
+        mediaSrc: ["'none'"],
+        frameSrc: ["'none'"],
+        baseUri: ["'none'"],
+        formAction: ["'none'"],
+      },
+    },
+    crossOriginResourcePolicy: { policy: 'same-origin' },
+    crossOriginEmbedderPolicy: { policy: 'require-corp' },
+    crossOriginOpenerPolicy: { policy: 'same-origin' },
+    frameguard: { action: 'deny' },
+    noSniff: true,
+    referrerPolicy: { policy: 'strict-origin-when-cross-origin' },
+    hidePoweredBy: true,
+    xssFilter: true,
+  })
+
+  // Compress JSON responses. The public content payloads are the big ones;
+  // small bodies stay uncompressed because the framing would cost more than it
+  // saves. Brotli is preferred, gzip is the fallback.
+  await app.register(compress, {
+    global: true,
+    encodings: ['br', 'gzip'],
+    threshold: 1_024,
   })
 
   await app.register(cors, {
@@ -69,6 +100,27 @@ export async function buildApp() {
       return error
     },
   })
+
+  // Slow-request signal without a tracing backend. The log line carries enough
+  // context to find the route; an OTel collector can be added later without
+  // changing this hook.
+  app.addHook('onResponse', async (request, reply) => {
+    const durationMs = Math.round(reply.elapsedTime)
+    if (durationMs < config.SLOW_REQUEST_MS) return
+    request.log.warn(
+      {
+        event: 'http.slow_request',
+        method: request.method,
+        url: request.url,
+        statusCode: reply.statusCode,
+        durationMs,
+      },
+      'slow request',
+    )
+  })
+
+  // Background jobs report through the same structured logger as requests.
+  configureJobQueue({ logger: app.log })
 
   registerErrorHandler(app)
   registerCsrfProtection(app)

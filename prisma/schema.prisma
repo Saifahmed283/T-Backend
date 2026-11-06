@@ -86,6 +86,8 @@ model User {
   activities    ActivityLog[]
   sessions      Session[]
   passwordResetTokens PasswordResetToken[]
+  failedLoginAttempts Int @default(0)
+  lockoutUntil  DateTime?
 }
 
 model Workspace {
@@ -262,6 +264,13 @@ model ContentItem {
   @@unique([workspaceId, kind, slug])
   @@index([workspaceId, kind, status])
   @@index([workspaceId, status, updatedAt])
+  // Public site reads: published rows for one collection, newest first.
+  @@index([workspaceId, kind, status, publishedAt])
+  // Case-insensitive `contains` search (editor list + public search) without a
+  // sequential scan. GIN/trigram indexes need the pg_trgm extension, created in
+  // migration 0009 before these indexes.
+  @@index([title(ops: raw("gin_trgm_ops"))], type: Gin)
+  @@index([slug(ops: raw("gin_trgm_ops"))], type: Gin)
 }
 
 // Media library files. The bytes live in cloud storage (S3-compatible); this

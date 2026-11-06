@@ -78,7 +78,55 @@ async function absorbPasswordWork(password: string): Promise<void> {
   await verifyPassword(password, dummyHash)
 }
 
+// Track failed login attempts for account lockout
+const MAX_FAILED_ATTEMPTS = 5
+const LOCKOUT_DURATION_MS = 15 * 60 * 1000 // 15 minutes
+
+async function recordFailedLogin(email: string): Promise<void> {
+  const now = new Date()
+  const lockoutUntil = new Date(now.getTime() + LOCKOUT_DURATION_MS)
+  // Use upsert to handle unknown emails gracefully - create a minimal record if not exists
+  await prisma.user.upsert({
+    where: { email: email.toLowerCase() },
+    update: {
+      failedLoginAttempts: { increment: 1 },
+      lockoutUntil: { set: lockoutUntil },
+    },
+    create: {
+      email: email.toLowerCase(),
+      name: 'Unknown',
+      passwordHash: null,
+      failedLoginAttempts: 1,
+      lockoutUntil,
+    },
+  })
+}
+
+async function resetFailedLogin(email: string): Promise<void> {
+  await prisma.user.updateMany({
+    where: { email: email.toLowerCase() },
+    data: {
+      failedLoginAttempts: 0,
+      lockoutUntil: null,
+    },
+  })
+}
+
+async function checkLockout(email: string): Promise<void> {
+  const user = await prisma.user.findUnique({
+    where: { email: email.toLowerCase() },
+    select: { failedLoginAttempts: true, lockoutUntil: true },
+  })
+  if (!user) return
+  if (user.failedLoginAttempts >= MAX_FAILED_ATTEMPTS && user.lockoutUntil && user.lockoutUntil > new Date()) {
+    const minutes = Math.ceil((user.lockoutUntil.getTime() - Date.now()) / 60000)
+    throw new AppError(429, `Too many failed attempts. Try again in ${minutes} minutes.`, 'ACCOUNT_LOCKED')
+  }
+}
+
 export async function loginWithPassword(email: string, password: string): Promise<AuthenticatedPrincipal> {
+  await checkLockout(email)
+
   const user = await prisma.user.findUnique({
     where: { email: email.toLowerCase() },
     include: { memberships: { include: { workspace: true }, orderBy: { workspaceId: 'asc' } } },
@@ -89,13 +137,21 @@ export async function loginWithPassword(email: string, password: string): Promis
   const invalid = new AppError(401, 'Email or password is incorrect', 'INVALID_CREDENTIALS')
   if (!user?.passwordHash) {
     await absorbPasswordWork(password)
+    await recordFailedLogin(email)
     throw invalid
   }
-  if (!(await verifyPassword(password, user.passwordHash))) throw invalid
+  if (!(await verifyPassword(password, user.passwordHash))) {
+    await recordFailedLogin(email)
+    throw invalid
+  }
+
+  await resetFailedLogin(email)
 
   const membership = user.memberships[0]
   if (!membership) throw new AppError(403, 'Your account has no workspace access', 'NO_WORKSPACE')
 
+  // Regenerate session on login to prevent session fixation
+  await prisma.session.deleteMany({ where: { userId: user.id } })
   const { token, expiresAt } = await createSession(user.id, membership.workspaceId)
 
   return {

@@ -1,6 +1,7 @@
 import type { FastifyInstance } from 'fastify'
 import { z } from 'zod'
 import { config } from '../../config/config.js'
+import { cachedPublic } from '../../modules/content/content-cache.js'
 import { AppError } from '../../modules/errors.js'
 import {
   getPublicContent,
@@ -37,13 +38,18 @@ export async function registerPublicRoutes(app: FastifyInstance) {
   app.get('/api/v1/public/content/:collectionId', publicRateLimit, async (request, reply) => {
     const { collectionId } = collectionParamsSchema.parse(request.params)
     const query = listQuerySchema.parse(request.query)
-    const result = await listPublicContent({ workspaceSlug: config.PUBLIC_WORKSPACE_SLUG, collectionId, ...query })
+    const result = await cachedPublic(
+      ['content', collectionId, query.search, query.page, query.pageSize],
+      () => listPublicContent({ workspaceSlug: config.PUBLIC_WORKSPACE_SLUG, collectionId, ...query }),
+    )
     return reply.header('Cache-Control', PUBLIC_CACHE).send(result)
   })
 
   app.get('/api/v1/public/content/:collectionId/:slug', publicRateLimit, async (request, reply) => {
     const { collectionId, slug } = itemParamsSchema.parse(request.params)
-    const item = await getPublicContent(config.PUBLIC_WORKSPACE_SLUG, collectionId, slug)
+    const item = await cachedPublic(['item', collectionId, slug], () =>
+      getPublicContent(config.PUBLIC_WORKSPACE_SLUG, collectionId, slug),
+    )
     if (!item) throw new AppError(404, 'Content not found', 'NOT_FOUND')
     return reply.header('Cache-Control', PUBLIC_CACHE).send(item)
   })
@@ -51,11 +57,17 @@ export async function registerPublicRoutes(app: FastifyInstance) {
   // Every published slug, grouped by collection — used at build time to
   // enumerate the prerendered detail routes.
   app.get('/api/v1/public/slugs', publicRateLimit, async (_request, reply) => {
-    return reply.header('Cache-Control', PUBLIC_CACHE).send(await publicSlugs(config.PUBLIC_WORKSPACE_SLUG))
+    const slugs = await cachedPublic(['slugs', config.PUBLIC_WORKSPACE_SLUG], () =>
+      publicSlugs(config.PUBLIC_WORKSPACE_SLUG),
+    )
+    return reply.header('Cache-Control', PUBLIC_CACHE).send(slugs)
   })
 
   // The public subset of the site configuration (contact/legal/social blocks).
   app.get('/api/v1/public/settings', publicRateLimit, async (_request, reply) => {
-    return reply.header('Cache-Control', PUBLIC_CACHE).send(await publicSiteSettings(config.PUBLIC_WORKSPACE_SLUG))
+    const settings = await cachedPublic(['settings', config.PUBLIC_WORKSPACE_SLUG], () =>
+      publicSiteSettings(config.PUBLIC_WORKSPACE_SLUG),
+    )
+    return reply.header('Cache-Control', PUBLIC_CACHE).send(settings)
   })
 }

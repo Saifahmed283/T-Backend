@@ -16,12 +16,12 @@ export async function registerRoutes(app: FastifyInstance) {
   // Liveness: is the process up? Never touches the database.
   app.get(
     '/health',
-    { config: { rateLimit: false } },
+    { config: { rateLimit: { max: 60, timeWindow: '15 minutes' } } },
     async () => ({ status: 'ok', service: 'terramorph-api', timestamp: new Date().toISOString() }),
   )
 
   // Readiness: can the process actually serve traffic (database reachable)?
-  app.get('/health/ready', { config: { rateLimit: false } }, async (_request, reply) => {
+  app.get('/health/ready', { config: { rateLimit: { max: 30, timeWindow: '15 minutes' } } }, async (_request, reply) => {
     try {
       await prisma.$queryRaw`SELECT 1`
       return reply.send({ status: 'ready', database: 'up', timestamp: new Date().toISOString() })

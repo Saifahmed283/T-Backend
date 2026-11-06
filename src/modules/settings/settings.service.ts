@@ -1,5 +1,6 @@
 import type { Prisma } from '../../generated/prisma/client.js'
 import { prisma } from '../../db/prisma.js'
+import { invalidatePublicCache } from '../content/content-cache.js'
 
 // Website configuration is a single per-workspace JSON document: contact, legal
 // identity, social links, default SEO, homepage hero and navigation order.
@@ -27,5 +28,6 @@ export async function updateSiteSettings(workspaceId: string, data: Record<strin
       metadata: { scope: 'site-settings' },
     },
   })
+  await invalidatePublicCache()
   return { data: setting.data as Record<string, unknown>, updatedAt: setting.updatedAt.toISOString() }
 }

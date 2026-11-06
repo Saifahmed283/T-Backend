@@ -3,7 +3,7 @@ import { prisma } from '../../db/prisma.js'
 export async function getDashboardSummary(workspaceId: string) {
   // Every aggregate is scoped to the caller's workspace.
   const scope = { workspaceId }
-  const [total, grouped, byStage, value, expertsOnRoster, notesReceived, generatedAt] = await Promise.all([
+  const [total, grouped, byStage, value, expertsOnRoster, notesReceived, verified, generatedAt] = await Promise.all([
     prisma.assignment.count({ where: scope }),
     prisma.assignment.groupBy({ by: ['status'], where: scope, _count: { _all: true } }),
     prisma.assignment.groupBy({ by: ['stage'], where: scope, _count: { _all: true } }),
@@ -11,9 +11,9 @@ export async function getDashboardSummary(workspaceId: string) {
     // Experts are rostered people, not dashboard users.
     prisma.expert.count({ where: scope }),
     prisma.activityLog.count({ where: { workspaceId, type: 'NOTE_ADDED' } }),
+    prisma.assignment.count({ where: { workspaceId, stage: { in: ['G6', 'G7'] } } }),
     prisma.assignment.findFirst({ where: scope, orderBy: { updatedAt: 'desc' }, select: { updatedAt: true } }),
   ])
-  const verified = await prisma.assignment.count({ where: { workspaceId, stage: { in: ['G6', 'G7'] } } })
   return {
     activeAssignments: total,
     contractValue: value._sum.value ?? 0,

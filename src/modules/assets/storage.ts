@@ -2,6 +2,33 @@ import { DeleteObjectCommand, PutObjectCommand, S3Client } from '@aws-sdk/client
 import { config } from '../../config/config.js'
 import { AppError } from '../errors.js'
 
+export { ALLOWED_MIME_TYPES }
+
+// Allowed MIME types for media uploads
+const ALLOWED_MIME_TYPES = new Set([
+  'image/jpeg',
+  'image/png',
+  'image/gif',
+  'image/webp',
+  'image/avif',
+  'image/svg+xml',
+  'application/pdf',
+  'text/plain',
+  'text/csv',
+  'application/msword',
+  'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+  'application/vnd.ms-excel',
+  'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+  'application/zip',
+  'application/x-zip-compressed',
+])
+
+function validateMimeType(mimeType: string): void {
+  if (!ALLOWED_MIME_TYPES.has(mimeType)) {
+    throw new AppError(400, `File type ${mimeType} is not allowed`, 'INVALID_FILE_TYPE')
+  }
+}
+
 // Thin wrapper over S3-compatible object storage. When credentials are absent
 // the whole module stays dormant and callers surface STORAGE_NOT_CONFIGURED
 // rather than crashing, so the workspace runs fine without a bucket.
@@ -16,6 +43,8 @@ function getClient(): S3Client {
       endpoint: config.S3_ENDPOINT,
       region: config.S3_REGION,
       forcePathStyle: config.S3_FORCE_PATH_STYLE ?? false,
+      // Bound SDK-level retries so one slow bucket cannot multiply the wait.
+      maxAttempts: 2,
       credentials: {
         accessKeyId: config.S3_ACCESS_KEY_ID as string,
         secretAccessKey: config.S3_SECRET_ACCESS_KEY as string,
@@ -40,7 +69,14 @@ export type PutObjectInput = {
   contentType: string
 }
 
+// Every external call gets a hard deadline. Without one a stalled object store
+// holds the request (and its database connection) until the platform kills it.
+function timeoutSignal(): AbortSignal {
+  return AbortSignal.timeout(config.S3_TIMEOUT_MS)
+}
+
 export async function putObject(input: PutObjectInput): Promise<{ key: string; url: string }> {
+  validateMimeType(input.contentType)
   const s3 = getClient()
   await s3.send(
     new PutObjectCommand({
@@ -50,6 +86,7 @@ export async function putObject(input: PutObjectInput): Promise<{ key: string; u
       ContentType: input.contentType,
       CacheControl: 'public, max-age=31536000, immutable',
     }),
+    { abortSignal: timeoutSignal() },
   )
   return { key: input.key, url: publicUrl(input.key) }
 }
@@ -59,5 +96,5 @@ export async function deleteObject(key: string): Promise<void> {
   // the database row is being removed anyway.
   if (!config.STORAGE_ENABLED) return
   const s3 = getClient()
-  await s3.send(new DeleteObjectCommand({ Bucket: config.S3_BUCKET, Key: key }))
+  await s3.send(new DeleteObjectCommand({ Bucket: config.S3_BUCKET, Key: key }), { abortSignal: timeoutSignal() })
 }

@@ -4,6 +4,7 @@ import { createAsset, deleteAsset, listAssets, updateAsset } from '../../modules
 import { AppError } from '../../modules/errors.js'
 import { principalOf, requireAuth, requireRole } from '../middleware/requireAuth.js'
 import { altBodySchema, assetListQuerySchema } from '../schemas/asset.schemas.js'
+import { ALLOWED_MIME_TYPES } from '../../modules/assets/storage.js'
 
 const assetParamsSchema = z.object({ id: z.string().min(1).max(50) })
 
@@ -46,6 +47,11 @@ export async function registerAssetRoutes(app: FastifyInstance) {
 
     if (!buffer || !filename || !mimeType) {
       throw new AppError(400, 'No file was uploaded', 'NO_FILE')
+    }
+
+    // Validate MIME type
+    if (!ALLOWED_MIME_TYPES.has(mimeType)) {
+      throw new AppError(400, `File type ${mimeType} is not allowed`, 'INVALID_FILE_TYPE')
     }
 
     const alt = {

@@ -1,4 +1,5 @@
 import type { FastifyInstance } from 'fastify'
+import { enqueueJob } from '../../lib/job-queue.js'
 import { notifySubmissionCreated } from '../../modules/notifications/submission-notifications.js'
 import { createSubmission, listSubmissions } from '../../modules/submissions/submissions.service.js'
 import { requireAuth, requireRole } from '../middleware/requireAuth.js'
@@ -13,7 +14,7 @@ export async function registerSubmissionRoutes(app: FastifyInstance) {
     {
       config: {
         rateLimit: {
-          max: 60,
+          max: 20,
           timeWindow: '15 minutes',
         },
       },
@@ -21,17 +22,21 @@ export async function registerSubmissionRoutes(app: FastifyInstance) {
     async (request, reply) => {
       const body = createSubmissionSchema.parse(request.body)
       const created = await createSubmission(body)
-      // Best-effort: notifications never turn a recorded submission into a 5xx.
-      await notifySubmissionCreated(
-        {
-          ...created,
-          email: body.email ?? null,
-          name: body.name ?? null,
-          message: body.message ?? null,
-          source: body.source ?? null,
-          payload: body.payload ?? null,
-        },
-        request.log,
+      // Best-effort and off the request path in production: notifications never
+      // turn a recorded submission into a 5xx, and the visitor is not made to
+      // wait for an SMTP round-trip.
+      await enqueueJob('submission.notifications', () =>
+        notifySubmissionCreated(
+          {
+            ...created,
+            email: body.email ?? null,
+            name: body.name ?? null,
+            message: body.message ?? null,
+            source: body.source ?? null,
+            payload: body.payload ?? null,
+          },
+          request.log,
+        ),
       )
       return reply.status(201).send(created)
     },

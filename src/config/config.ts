@@ -37,6 +37,16 @@ const schema = z.object({
   // calls the job directly), on everywhere else.
   SCHEDULER_ENABLED: booleanish.optional(),
   SCHEDULER_INTERVAL_MS: z.coerce.number().int().min(1_000).default(60_000),
+  // Optional shared cache. Leave REDIS_URL unset for a single-instance
+  // deployment: the API then uses a bounded in-process store with the same
+  // semantics. Public content is cached for PUBLIC_CACHE_TTL_SECONDS, matching
+  // the HTTP Cache-Control window on those endpoints.
+  REDIS_URL: z.string().url().optional(),
+  CACHE_ENABLED: booleanish.optional(),
+  PUBLIC_CACHE_TTL_SECONDS: z.coerce.number().int().min(1).max(3_600).default(60),
+  // Requests slower than this are logged with method, route, status and
+  // duration. Set a little above the p95 you expect from the database region.
+  SLOW_REQUEST_MS: z.coerce.number().int().min(50).default(1_000),
   // Outbound email. Disabled by default so local and test runs are silent and
   // a misconfigured deployment cannot accidentally send mail. `log` writes the
   // rendered message to the server log; `memory` keeps it in-process for tests.
@@ -70,6 +80,9 @@ const schema = z.object({
   S3_PUBLIC_BASE_URL: z.string().url().optional(),
   // MinIO and some S3-compatible services need path-style addressing.
   S3_FORCE_PATH_STYLE: booleanish.optional(),
+  // Uploads and deletes are given up after this long so a stalled object store
+  // cannot hold a request (and its database connection) open indefinitely.
+  S3_TIMEOUT_MS: z.coerce.number().int().min(1_000).max(120_000).default(15_000),
 })
 
 const parsed = schema.parse(process.env)
@@ -102,6 +115,9 @@ export const config = {
   LOGIN_RATE_LIMIT_MAX: parsed.LOGIN_RATE_LIMIT_MAX ?? (isTest ? 1_000_000 : 10),
   SCHEDULER_ENABLED: parsed.SCHEDULER_ENABLED ?? !isTest,
   SCHEDULER_INTERVAL_MS: parsed.SCHEDULER_INTERVAL_MS,
+  // Caching stays off in the integration suite so a read in one test cannot
+  // observe a row another test has just changed.
+  CACHE_ENABLED: parsed.CACHE_ENABLED ?? !isTest,
   EMAIL_ENABLED: parsed.EMAIL_ENABLED ?? false,
   PASSWORD_RESET_TTL_MS: parsed.PASSWORD_RESET_TTL_MINUTES * 60 * 1000,
   isProduction,

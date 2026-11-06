@@ -1,6 +1,7 @@
 import { Prisma } from '../../generated/prisma/client.js'
 import { prisma } from '../../db/prisma.js'
 import { AppError } from '../errors.js'
+import { invalidatePublicCache } from './content-cache.js'
 import { collectionById, collectionIdByKind, kindForCollectionId } from './content.registry.js'
 
 // The editorial workflow, enforced on the server. Keys are the current status;
@@ -256,6 +257,7 @@ export async function createContent(input: CreateContentInput) {
     userId: input.userId,
     metadata: { kind, collectionId: input.collectionId },
   })
+  await invalidatePublicCache()
   return item
 }
 
@@ -304,6 +306,7 @@ export async function updateContent(input: UpdateContentInput) {
     userId: input.userId,
     metadata: { kind: item.kind, collectionId },
   })
+  await invalidatePublicCache()
   return item
 }
 
@@ -370,6 +373,7 @@ export async function transitionContent(input: TransitionInput) {
     userId: input.userId,
     metadata: { from: existing.status, to, ...(automatic ? { scheduled: true } : {}) },
   })
+  await invalidatePublicCache()
   return item
 }
 
@@ -385,6 +389,7 @@ export async function deleteContent(workspaceId: string, id: string, userId: str
     metadata: { kind: existing.kind, deleted: true },
   })
   await prisma.contentItem.delete({ where: { id: existing.id } })
+  await invalidatePublicCache()
   return { id, deleted: true }
 }
 
@@ -411,17 +416,34 @@ export async function contentCounts(workspaceId: string) {
   return { total, byStatus, byKind, generatedAt: new Date().toISOString() }
 }
 
-export async function workflowBoard(workspaceId: string, perColumn = 50) {
-  const columns: Record<string, unknown[]> = {}
-  for (const status of ALL_STATUSES) {
-    columns[status] = await prisma.contentItem.findMany({
-      where: { workspaceId, status: status as never },
-      select: contentSelect,
-      orderBy: { updatedAt: 'desc' },
-      take: perColumn,
-    })
-  }
-  return { columns, generatedAt: new Date().toISOString() }
+// The board is a navigation surface, not an editor: the id is enough to open a
+// record, and the rest is what the card renders. Selecting the full row (JSON
+// payload included) for every column made the dashboard pay for data it never
+// displayed.
+const boardSelect = {
+  id: true,
+  kind: true,
+  status: true,
+  slug: true,
+  title: true,
+  updatedAt: true,
+} as const
+
+export async function workflowBoard(workspaceId: string, perColumn = 20) {
+  // The seven columns are independent, so ask for them at once instead of
+  // paying seven sequential round-trips.
+  const entries = await Promise.all(
+    ALL_STATUSES.map(async (status) => {
+      const rows = await prisma.contentItem.findMany({
+        where: { workspaceId, status: status as never },
+        select: boardSelect,
+        orderBy: { updatedAt: 'desc' },
+        take: perColumn,
+      })
+      return [status, rows] as const
+    }),
+  )
+  return { columns: Object.fromEntries(entries), generatedAt: new Date().toISOString() }
 }
 
 // Public (unauthenticated) read model.
@@ -489,7 +511,9 @@ export async function listPublicContent(input: PublicListInput) {
     workspace: { slug: input.workspaceSlug },
     AND: and,
   }
-  const [rows, total] = await prisma.$transaction([
+  // Read-only and independent: run them together instead of serialising a
+  // whole transaction for two queries.
+  const [rows, total] = await Promise.all([
     prisma.contentItem.findMany({
       where,
       select: publicSelect,
