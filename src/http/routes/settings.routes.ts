@@ -2,8 +2,9 @@ import type { FastifyInstance } from 'fastify'
 import { z } from 'zod'
 import { getSiteSettings, updateSiteSettings } from '../../modules/settings/settings.service.js'
 import { principalOf, requireAuth, requireRole } from '../middleware/requireAuth.js'
+import { siteSettingsSchema } from '../../modules/settings/site-settings-schema.js'
 
-const siteSettingsBodySchema = z.object({ data: z.record(z.string(), z.unknown()) }).strict()
+const siteSettingsBodySchema = z.object({ data: siteSettingsSchema }).strict()
 
 export async function registerSettingsRoutes(app: FastifyInstance) {
   app.get('/api/v1/settings/site', { preHandler: requireAuth }, async (request, reply) => {

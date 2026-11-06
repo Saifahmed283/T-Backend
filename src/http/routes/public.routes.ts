@@ -6,9 +6,9 @@ import { AppError } from '../../modules/errors.js'
 import {
   getPublicContent,
   listPublicContent,
-  publicSiteSettings,
   publicSlugs,
 } from '../../modules/content/content.service.js'
+import { publicSiteSettings } from '../../modules/settings/settings.service.js'
 
 const collectionParamsSchema = z.object({ collectionId: z.string().trim().min(1).max(50) })
 

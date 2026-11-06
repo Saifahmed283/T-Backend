@@ -4,7 +4,7 @@ import { prisma } from './db/prisma.js';
 import { fatalLogFields } from './http/errors.js';
 import { closeCache } from './lib/cache.js';
 import { drainJobQueue } from './lib/job-queue.js';
-// import { startContentScheduler, type ContentScheduler } from './modules/content/scheduler.js';
+import { startContentScheduler, type ContentScheduler } from './modules/content/scheduler.js';
 
 async function main() {
   const app = await buildApp();
@@ -16,32 +16,21 @@ async function main() {
     process.exit(1);
   }
 
-  // Test log to verify server is running
-  app.log.info({ port: config.PORT, host: config.HOST }, 'Server started successfully, ready to accept connections');
-
-  // Add a periodic log to verify server stays alive
-  const keepAlive = setInterval(() => {
-    app.log.debug('Server keep-alive tick');
-  }, 30000);
-  keepAlive.unref?.();
-
-  // Scheduler disabled for debugging
-  // let scheduler: ContentScheduler | undefined;
-  // if (config.SCHEDULER_ENABLED) {
-  //   scheduler = startContentScheduler({
-  //     intervalMs: config.SCHEDULER_INTERVAL_MS,
-  //     logger: app.log,
-  //   });
-  //   app.log.info({ intervalMs: config.SCHEDULER_INTERVAL_MS }, 'Scheduled publishing enabled');
-  // }
+  let scheduler: ContentScheduler | undefined;
+  if (config.SCHEDULER_ENABLED) {
+    scheduler = startContentScheduler({
+      intervalMs: config.SCHEDULER_INTERVAL_MS,
+      logger: app.log,
+    });
+    app.log.info({ intervalMs: config.SCHEDULER_INTERVAL_MS }, 'Scheduled publishing enabled');
+  }
 
   let shuttingDown = false;
   const shutdown = async (signal: string, exitCode = 0) => {
     if (shuttingDown) return;
     shuttingDown = true;
     app.log.info({ signal }, 'Shutting down');
-    clearInterval(keepAlive);
-    // scheduler?.stop();
+    scheduler?.stop();
     // Let queued side effects (submission receipts, notices) finish before the
     // process exits; the drain is bounded so a stuck job cannot hang shutdown.
     await drainJobQueue();

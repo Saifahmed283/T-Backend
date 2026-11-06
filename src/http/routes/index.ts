@@ -1,12 +1,9 @@
 import type { FastifyInstance } from 'fastify'
 import { prisma } from '../../db/prisma.js'
 import { registerActivityRoutes } from './activity.routes.js'
-import { registerAssignmentRoutes } from './assignments.routes.js'
 import { registerAssetRoutes } from './assets.routes.js'
 import { registerAuthRoutes } from './auth.routes.js'
 import { registerContentRoutes } from './content.routes.js'
-import { registerDashboardRoutes } from './dashboard.routes.js'
-import { registerExpertRoutes } from './experts.routes.js'
 import { registerMemberRoutes } from './members.routes.js'
 import { registerPublicRoutes } from './public.routes.js'
 import { registerSettingsRoutes } from './settings.routes.js'
@@ -31,9 +28,6 @@ export async function registerRoutes(app: FastifyInstance) {
   })
 
   await registerAuthRoutes(app)
-  await registerDashboardRoutes(app)
-  await registerAssignmentRoutes(app)
-  await registerExpertRoutes(app)
   await registerActivityRoutes(app)
   await registerSubmissionRoutes(app)
   await registerContentRoutes(app)
@@ -42,4 +36,3 @@ export async function registerRoutes(app: FastifyInstance) {
   await registerSettingsRoutes(app)
   await registerMemberRoutes(app)
 }
-

@@ -148,12 +148,14 @@ export type ContentListInput = {
   collectionId: string
   status?: string
   search?: string
+  geography?: string
+  sector?: string
   page: number
   pageSize: number
 }
 
 export async function listContent(input: ContentListInput) {
-  const { workspaceId, collectionId, status, search, page, pageSize } = input
+  const { workspaceId, collectionId, status, search, geography, sector, page, pageSize } = input
   const kind = toKind(collectionId)
   const where: Prisma.ContentItemWhereInput = {
     workspaceId,
@@ -165,6 +167,22 @@ export async function listContent(input: ContentListInput) {
             { title: { contains: search, mode: 'insensitive' } },
             { slug: { contains: search, mode: 'insensitive' } },
           ],
+        }
+      : {}),
+    ...(geography
+      ? {
+          data: {
+            path: ['geography'],
+            string_contains: geography,
+          },
+        }
+      : {}),
+    ...(sector
+      ? {
+          data: {
+            path: ['sector'],
+            string_contains: sector,
+          },
         }
       : {}),
   }
@@ -555,14 +573,6 @@ export async function publicSlugs(workspaceSlug: string) {
     collections[collectionId] = bucket
   }
   return { collections }
-}
-
-export async function publicSiteSettings(workspaceSlug: string) {
-  const workspace = await prisma.workspace.findUnique({
-    where: { slug: workspaceSlug },
-    select: { siteSetting: { select: { data: true, updatedAt: true } } },
-  })
-  return workspace?.siteSetting ? workspace.siteSetting.data : {}
 }
 
 function collectionIdFromKind(kind: string): string | undefined {

@@ -51,6 +51,8 @@ export async function resolveSession(token: string): Promise<Principal | null> {
   // deleted workspace takes effect immediately rather than at session expiry.
   const membership = session.user.memberships.find((m) => m.workspaceId === session.activeWorkspaceId)
   if (!membership) return null
+  // Suspended members cannot access the workspace
+  if (membership.suspendedAt) return null
 
   return {
     userId: session.user.id,

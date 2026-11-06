@@ -6,6 +6,8 @@ export const contentStatusSchema = z.enum(ALL_STATUSES)
 export const contentListQuerySchema = z.object({
   status: contentStatusSchema.optional(),
   search: z.string().trim().max(100).optional(),
+  geography: z.string().trim().max(100).optional(),
+  sector: z.string().trim().max(100).optional(),
   page: z.coerce.number().int().min(1).default(1),
   pageSize: z.coerce.number().int().min(1).max(100).default(20),
 })
