@@ -395,12 +395,11 @@ New Cairo head office (Sun–Thu, 09:00–17:00 EET)
 Field presences: Assiut (Upper Egypt) · Alexandria (Delta)
 
 Email:
-• hello@askterramorph.com — new engagements
-• tenders@askterramorph.com — procurement
-• info@askterramorph.com — data protection
+• info@askterramorph.com — general info, news & events
+
+Owner: mbaraka@askterramorph.com
 
 Phone: +20 115 000 0984
-Website: https://askterramorph.com
 
 Replies within one working day from a named person.`,
     ar: `تواصل مع شركة تيرامورف
@@ -409,12 +408,11 @@ Replies within one working day from a named person.`,
 تواجد ميداني: أسيوط (صعيد مصر) · الإسكندرية (الدلتا)
 
 البريد الإلكتروني:
-• hello@askterramorph.com — التعاقدات الجديدة
-• tenders@askterramorph.com — المشتريات
-• info@askterramorph.com — حماية البيانات
+• info@askterramorph.com — المعلومات العامة، الأخبار والأحداث
+
+المالك: mbaraka@askterramorph.com
 
 الهاتف: +20 115 000 0984
-الموقع الإلكتروني: https://askterramorph.com
 
 الرد خلال يوم عمل واحد من شخص محدد الاسم.`,
     links: [
