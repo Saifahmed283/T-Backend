@@ -404,3 +404,19 @@ model DataRequest {
   @@index([email])
   @@index([verificationToken])
 }
+
+// Record of user acceptance of Privacy Policy and Terms of Service.
+// Captures email, document versions, and timestamp for GDPR/PDPL compliance.
+// Platform-level, not tenant-scoped.
+model TermsAcceptance {
+  id              String   @id @default(cuid())
+  email           String   @unique // one acceptance record per email (latest wins)
+  privacyVersion  String   // Privacy Policy version accepted
+  termsVersion    String   // Terms of Service version accepted
+  acceptedAt      DateTime @default(now())
+  ipAddress       String?
+  userAgent       String?
+  source          String?  // e.g. 'join', 'request-dialog', 'conversation', 'whatsnew'
+  @@index([email])
+  @@index([acceptedAt])
+}

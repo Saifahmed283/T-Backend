@@ -10,6 +10,7 @@ import { registerMemberRoutes } from './members.routes.js'
 import { registerPublicRoutes } from './public.routes.js'
 import { registerSettingsRoutes } from './settings.routes.js'
 import { registerSubmissionRoutes } from './submissions.routes.js'
+import { registerTermsAcceptanceRoutes } from './terms-acceptance.routes.js'
 
 export async function registerRoutes(app: FastifyInstance) {
   // Liveness: is the process up? Never touches the database.
@@ -39,4 +40,5 @@ export async function registerRoutes(app: FastifyInstance) {
   await registerMemberRoutes(app)
   await registerDataRequestRoutes(app)
   await registerMarketingConsentRoutes(app)
+  await registerTermsAcceptanceRoutes(app)
 }
