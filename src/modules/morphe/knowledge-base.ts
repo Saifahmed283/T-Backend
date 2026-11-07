@@ -241,9 +241,9 @@ export const KNOWLEDGE_BASE: KnowledgeEntry[] = [
     id: "contact",
     triggers: ["contact", "reach", "email", "phone", "follow up", "team", "where are you"],
     en:
-      "Contact the TerraMorph team: privacy@askterramorph.com for data protection, copyright@askterramorph.com for DMCA, or use the contact page. We're based in New Cairo, Egypt. CR No. 184 562, TIN 742-118-903.",
+      "Contact the TerraMorph team: info@askterramorph.com for data protection, copyright@askterramorph.com for DMCA, or use the contact page. We're based in New Cairo, Egypt. CR No. 184 562, TIN 742-118-903.",
     ar:
-      "اتصل بفريق شركة تيرامورف: privacy@askterramorph.com لحماية البيانات، copyright@askterramorph.com لـ DMCA، أو استخدم صفحة الاتصال. نحن مقرنا في القاهرة الجديدة، مصر. السجل التجاري 184 562، الرقم الضريبي 742-118-903.",
+      "اتصل بفريق شركة تيرامورف: info@askterramorph.com لحماية البيانات، copyright@askterramorph.com لـ DMCA، أو استخدم صفحة الاتصال. نحن مقرنا في القاهرة الجديدة، مصر. السجل التجاري 184 562، الرقم الضريبي 742-118-903.",
     links: [
       { id: "contact", url: "/contact", label: "Contact the Team", labelAr: "تواصل مع الفريق" },
     ],
@@ -252,9 +252,9 @@ export const KNOWLEDGE_BASE: KnowledgeEntry[] = [
     id: "data-request",
     triggers: ["data request", "access", "delete", "privacy", "gdpr", "personal data", "my data"],
     en:
-      "Data subject rights: you can request access to, rectification of, or deletion of your personal data via the Data Request page. We respond within 30 days. Email privacy@askterramorph.com.",
+      "Data subject rights: you can request access to, rectification of, or deletion of your personal data via the Data Request page. We respond within 30 days. Email info@askterramorph.com.",
     ar:
-      "حقوق أصحاب البيانات: يمكنك 요청 الوصول إلى، أو تصحيح، أو حذف بياناتك الشخصية عبر صفحة طلب البيانات. نرد خلال 30 يومًا. راسل privacy@askterramorph.com.",
+      "حقوق أصحاب البيانات: يمكنك 요청 الوصول إلى، أو تصحيح، أو حذف بياناتك الشخصية عبر صفحة طلب البيانات. نرد خلال 30 يومًا. راسل info@askterramorph.com.",
     links: [
       { id: "data-request", url: "/data-request", label: "Data Request", labelAr: "طلب بيانات" },
     ],
