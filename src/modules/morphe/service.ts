@@ -6,6 +6,7 @@
 import { prisma } from "../../db/prisma.js";
 import { createSubmission } from "../submissions/submissions.service.js";
 import { createClassifier } from "./classifier.js";
+import { findKnowledgeAnswer, KNOWLEDGE_BASE } from "./knowledge-base.js";
 import { FlowEngine } from "./flow.js";
 import { morpheSessions } from "./session.js";
 import type { FlowSlot } from "./flow.js";
@@ -230,6 +231,23 @@ export async function handleChat(input: ChatInput): Promise<ChatOutput> {
     morpheSessions.create(sessionId, lang);
     rec = morpheSessions.get(sessionId);
     if (!rec) throw new Error("Failed to create Morphe session");
+  }
+
+  // If the user sent a message, check the knowledge base first.
+  // Knowledge questions are answered directly without advancing the flow
+  // state, so asking "what is G2?" mid-conversation won't derail intake.
+  if (input.message) {
+    const kb = findKnowledgeAnswer(input.message, lang)
+    if (kb) {
+      return {
+        sessionId,
+        reply: lang === "ar" ? kb.ar : kb.en,
+        state: rec.state,
+        terminal: false,
+        slots: rec.slots,
+        links: (kb.links ?? []).map((l) => ({ id: l.id, url: l.url, label: l.label })),
+      }
+    }
   }
 
   const engine = new FlowEngine(classifier, FLOW_CONFIG, FLOW_LINKS);
