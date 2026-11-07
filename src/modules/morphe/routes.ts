@@ -16,6 +16,7 @@ const chatBodySchema = z
     session_id: z.string().uuid().nullable().optional(),
     message: z.string().max(2000).nullable().optional(),
     lang: z.enum(["en", "ar"]).default("en"),
+    use_search: z.boolean().default(false),
   })
   .strict();
 
@@ -36,6 +37,7 @@ export async function registerMorpheRoutes(fastify: FastifyInstance) {
         sessionId: body.session_id ?? null,
         message: body.message ?? null,
         lang: body.lang,
+        useSearch: body.use_search,
       });
       return reply.send(result);
     },

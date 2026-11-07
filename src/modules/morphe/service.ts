@@ -209,6 +209,7 @@ export interface ChatInput {
   sessionId: string | null;
   message: string | null;
   lang: "en" | "ar";
+  useSearch?: boolean;
 }
 
 export interface ChatOutput {
@@ -218,10 +219,12 @@ export interface ChatOutput {
   terminal: boolean;
   slots: FlowSlot;
   links: Array<{ id: string; url: string; label: string }>;
+  searchUsed?: boolean;
 }
 
 export async function handleChat(input: ChatInput): Promise<ChatOutput> {
   const lang = input.lang ?? "en";
+  const useSearch = input.useSearch ?? false;
 
   // Resolve or create session
   let sessionId: string = input.sessionId ?? crypto.randomUUID();
@@ -246,6 +249,7 @@ export async function handleChat(input: ChatInput): Promise<ChatOutput> {
         terminal: false,
         slots: rec.slots,
         links: (kb.links ?? []).map((l) => ({ id: l.id, url: l.url, label: l.label })),
+        searchUsed: useSearch,
       }
     }
   }
@@ -278,6 +282,7 @@ export async function handleChat(input: ChatInput): Promise<ChatOutput> {
     terminal: result.terminal,
     slots: result.slots,
     links: result.links.map((l) => ({ id: l.id, url: l.url, label: l.label })),
+    searchUsed: useSearch,
   };
 }
 
