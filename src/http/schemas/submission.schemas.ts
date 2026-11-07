@@ -10,6 +10,7 @@ export const submissionKinds = [
   'PUBLICATION_REQUEST',
   'NEWSLETTER',
   'CONTRIBUTION',
+  'MORPHE_LEAD',
 ] as const
 
 export const submissionKindSchema = z.enum(submissionKinds, 'Choose a valid request type')

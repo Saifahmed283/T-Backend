@@ -213,6 +213,7 @@ enum SubmissionKind {
   PUBLICATION_REQUEST
   NEWSLETTER
   CONTRIBUTION
+  MORPHE_LEAD
 }
 
 enum SubmissionStatus {

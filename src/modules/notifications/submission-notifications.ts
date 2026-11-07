@@ -23,6 +23,7 @@ const LABELS: Record<SubmissionKind, string> = {
   PUBLICATION_REQUEST: 'publication request',
   NEWSLETTER: 'newsletter sign-up',
   CONTRIBUTION: 'contribution',
+  MORPHE_LEAD: 'morphe intake lead',
 }
 
 function detailLines(submission: SubmissionNotification): string[] {
