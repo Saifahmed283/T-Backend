@@ -20,10 +20,10 @@ export const FLOW_CONFIG = {
   states: {
     greeting: {
       say: [
-        "Hi, I'm Morphe - TerraMorph's intake assistant. I help turn ideas into leveraged, gated projects. What brings you here today?",
+        "Hi, I'm Morphe - TerraMorph's intake assistant. I help turn ideas into leveraged, delivered projects. What brings you here today?",
       ],
       sayAr: [
-        "أهلاً، أنا مورفي - مساعد الاستقبال في شركة تيرامورف. أساعد في تحويل الأفكار إلى مشاريع بواباتية. ماذا bringsك اليوم؟",
+        "أهلاً، أنا مورفي - مساعد الاستقبال في شركة تيرامورف. أساعد في تحويل الأفكار إلى مشاريع تُنفّذ وتُقدّم. ماذا bringsك اليوم؟",
       ],
       expectsSlot: "visitor_type",
       intents: ["new_idea", "partner_inquiry", "general_question", "just_browsing"],
@@ -34,7 +34,7 @@ export const FLOW_CONFIG = {
         just_browsing: "soft_close",
         fallback: "clarify_intent",
       },
-      suggestLinks: ["methodology", "about"],
+      suggestLinks: ["method", "about"],
     },
     clarify_intent: {
       say: [
@@ -68,35 +68,35 @@ export const FLOW_CONFIG = {
     idea_stage: {
       say: ["Where is it right now - just a concept, something you've tested informally, or already running with early results?"],
       sayAr: ["أين هو الآن - مجرد فكرة، شيء جربته بشكل غير رسمي، أم يعمل بالفعل بنتائج أولية؟"],
-      expectsSlot: "gate_stage",
+      expectsSlot: "idea_stage",
       intents: ["stage_concept", "stage_tested", "stage_running"],
       routes: {
-        stage_concept: "gate_estimate_g0",
-        stage_tested: "gate_estimate_g2",
-        stage_running: "gate_estimate_g4",
-        fallback: "gate_estimate_g0",
+        stage_concept: "layer_estimate_locate",
+        stage_tested: "layer_estimate_design",
+        stage_running: "layer_estimate_implement",
+        fallback: "layer_estimate_locate",
       },
     },
-    gate_estimate_g0: {
-      say: ["That puts you around G0 - the ignition gate, where TerraMorph helps shape raw ideas into a structured case."],
-      sayAr: ["هذا يضعك عند بوابة G0 - بوابة الإشعال، حيث تساعد شركة تيرامورف في تشكيل الأفكار الخام إلى حالة منظمة."],
+    layer_estimate_locate: {
+      say: ["That sounds like the Locate layer - diagnosing the ground and naming the binding constraint before anything is built."],
+      sayAr: ["هذا يبدو مثل طبقة التحديد - تشخيص الواقع وتسمية القيد الملزم قبل بناء أي شيء."],
       expectsSlot: null,
       autoNext: "timeline",
-      suggestLinks: ["methodology"],
+      suggestLinks: ["method", "instruments"],
     },
-    gate_estimate_g2: {
-      say: ["That's roughly G2 territory - you've got early validation, and the next gate is about proving the model can scale responsibly."],
-      sayAr: ["هذا يشبه منطقة G2 - لديك التحقق المبكر، والبوابة التالية هي حول إثبات أن النموذج يمكن أن يتوسع بشكل مسؤول."],
+    layer_estimate_design: {
+      say: ["That's the Design layer - you have early validation, and the next step is proving the model with costed instruments and risk registers."],
+      sayAr: ["هذه طبقة التصميم - لديك التحقق المبكر، والخطوة التالية هي إثبات النموذج بأدوات مدفوعة التكلفة وسجلات مخاطر."],
       expectsSlot: null,
       autoNext: "timeline",
-      suggestLinks: ["methodology", "case_studies"],
+      suggestLinks: ["method", "instruments", "cases"],
     },
-    gate_estimate_g4: {
-      say: ["That's solid - sounds like G4+, where the focus shifts to leverage: partnerships, funding structure, and governance for scale."],
-      sayAr: ["هذا قوي - يبدو مثل G4+، حيث يتحول التركيز إلى الرافعة: الشراكات، هيكل التمويل، والحوكمة للتوسع."],
+    layer_estimate_implement: {
+      say: ["That's solid - sounds like Implement or Assure, where the focus shifts to embedded delivery, verification, and handing capability to your team."],
+      sayAr: ["هذا قوي - يبدو مثل طبقة التنفيذ أو التأكيد، حيث يتحول التركيز إلى التسليم المدمج، والتحقق، وتسليم القدرة إلى فريقك."],
       expectsSlot: null,
       autoNext: "timeline",
-      suggestLinks: ["methodology", "case_studies", "partners"],
+      suggestLinks: ["method", "cases", "partners"],
     },
     timeline: {
       say: ["What's your timeline - are you hoping to move on this in the next month, this quarter, or is it more exploratory for now?"],
@@ -145,8 +145,8 @@ export const FLOW_CONFIG = {
       suggestLinks: ["partners"],
     },
     general_qa: {
-      say: ["Happy to help - ask away about TerraMorph, the G0-G7 methodology, or how 'Leverage For Good' works in practice."],
-      sayAr: ["سعيد بالمساعدة - اسأل عما تريد عن شركة تيرامورف، أو منهجية G0-G7، أو كيف يعمل 'الرافعة للخير' عمليًا."],
+      say: ["Happy to help - ask away about TerraMorph, the LDIA delivery architecture, or how 'Leverage For Good' works in practice."],
+      sayAr: ["سعيد بالمساعدة - اسأل عما تريد عن شركة تيرامورف، أو هندسة LDIA للتسليم، أو كيف يعمل 'الرافعة للخير' عمليًا."],
       expectsSlot: "free_question",
       intents: ["question_methodology", "question_services", "question_about", "question_partners", "question_contact", "done_asking"],
       routes: {
@@ -158,18 +158,18 @@ export const FLOW_CONFIG = {
         done_asking: "soft_close",
         fallback: "human_handoff",
       },
-      suggestLinks: ["methodology", "services", "about"],
+      suggestLinks: ["method", "services", "about"],
       intentReplies: {
-        question_methodology: "TerraMorph uses a gated lifecycle, G0 through G7 - each gate is a checkpoint where an idea has to prove it's ready to advance, from raw concept at G0 to full leveraged scale by G7.",
-        question_services: "TerraMorph works as a strategy, policy, and transformation advisory - shaping ideas into structured, fundable cases and guiding them through the gated process.",
-        question_about: "TerraMorph is a Cairo-based social cause incubation company - there's also TerraMorph Society, the community-facing side.",
+        question_methodology: "TerraMorph uses the LDIA delivery architecture - Locate, Design, Implement, Assure - four layers that turn a mandate into a verified, transferable result.",
+        question_services: "TerraMorph works as a strategy, policy, and transformation advisory - shaping ideas into structured, fundable cases and guiding them through LDIA.",
+        question_about: "TerraMorph is a Cairo-based social cause advisory - there's also a vetted bench of associates and a community-facing side.",
         question_partners: "Partnerships take a few shapes - funders, government/development partners, and consultancies all plug in differently.",
         question_contact: "The fastest way is the contact page below - or tell me a bit about what you need and I can log it for the team directly.",
       },
       intentRepliesAr: {
-        question_methodology: "تستخدم شركة تيرامورف دورة حياة بواباتية، من G0 إلى G7 - كل بوابة هي نقطة تفتيش حيث يجب أن تثبت الفكرة جاهزيتها للتقدم، من الفكرة الخام عند G0 إلى كامل الوتيرة المُضاعفة عند G7.",
-        question_services: "تعمل شركة تيرامورف كاستشاري استراتيجية، وسياسة، وتحول - تشكيل الأفكار إلى حالات منظمة، وقابلة للتمويل، وتوجيهها خلال العملية البواباتية.",
-        question_about: "شركة تيرامورف هي شركة حاضنة للأسباب الاجتماعية مقرها القاهرة - وهناك أيضًا شركة تيرامورف للمجتمع، الجانب المجتمعي.",
+        question_methodology: "تستخدم شركة تيرامورف هندسة LDIA للتسليم - تحديد، تصميم، تنفيذ، تأكيد - أربع طبقات تحوّل التكليف إلى نتيجة مؤكدة قابلة للتسليم.",
+        question_services: "تعمل شركة تيرامورف كاستشاري استراتيجية، وسياسة، وتحول - تشكيل الأفكار إلى حالات منظمة، وقابلة للتمويل، وتوجيهها عبر هندسة LDIA.",
+        question_about: "شركة تيرامورف هي شركة استشارية اجتماعية مقرها القاهرة - وهناك أيضًا مقاعد من الشركاء المفحوصين، والجانب المجتمعي.",
         question_partners: "تأتي الشراكات بأشكال قليلة - ممولون، وشركاء حكوميون/تنمويون، واستشاريون، جميعهم يتصلون بشكل مختلف.",
         question_contact: "أسرع طريقة هي صفحة الاتصال أدناه - أو أخبرني ببعض ما تحتاج إليه وسأقوم بتسجيله للفريق مباشرة.",
       },
@@ -196,11 +196,11 @@ export const FLOW_CONFIG = {
 } as const;
 
 export const FLOW_LINKS: Record<string, { url: string; label: string; labelAr?: string }> = {
-  methodology: { url: "/method", label: "The G0-G7 Gated Lifecycle", labelAr: "دورة الحياة البواباتية G0-G7" },
+  method: { url: "/method/ldia", label: "The LDIA Architecture", labelAr: "هندسة LDIA المعمارية" },
   services: { url: "/for", label: "Advisory Services", labelAr: "خدمات الاستشارات" },
   about: { url: "/about", label: "About TerraMorph", labelAr: "عن شركة تيرامورف" },
   partners: { url: "/hub/development-partners", label: "Partnership Models", labelAr: "نماذج الشراكة" },
-  case_studies: { url: "/evidence/case-studies", label: "Case Studies", labelAr: "دراسات الحالة" },
+  cases: { url: "/evidence/case-studies", label: "Case Studies", labelAr: "دراسات الحالة" },
   contact: { url: "/contact", label: "Contact the Team", labelAr: "تواصل مع الفريق" },
   society: { url: "/about", label: "TerraMorph Society", labelAr: "مجتمع شركة تيرامورف" },
 };

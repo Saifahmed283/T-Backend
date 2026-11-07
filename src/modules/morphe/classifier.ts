@@ -40,7 +40,7 @@ const KEYWORD_RULES: Record<string, RegExp[]> = {
   partner_named: [/funder/, /government/, /consultancy/, /ngo/, /agency/],
   unsure_partner: [/unsure/, /not sure/, /maybe/],
   unsure_sector: [/unsure/, /not sure/],
-  question_methodology: [/methodology/, /gate/, /g0|g7/, /lifecycle/],
+  question_methodology: [/methodology/, /ldia/, /locate/, /design/, /implement/, /assure/, /architecture/],
   question_services: [/service/, /advisory/, /what do you do/],
   question_about: [/about/, /who are you/, /terramorph/],
   question_partners: [/partner/, /partnership/],

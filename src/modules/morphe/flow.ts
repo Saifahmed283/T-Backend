@@ -159,7 +159,7 @@ export class FlowEngine {
       // state = nextState; // not needed, we use session.state below
     }
 
-    // Auto-advance through states with no question (e.g. gate commentary)
+    // Auto-advance through states with no question (e.g. layer commentary)
     let currentState = this.flow.states[session.state];
     while (currentState.autoNext && !currentState.terminal) {
       const replyLine = this.pickSay(currentState, lang);

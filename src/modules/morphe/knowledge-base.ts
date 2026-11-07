@@ -2,9 +2,12 @@
  * Morphe knowledge base - TerraMorph website content for the chatbot.
  *
  * These Q&A pairs are derived from the actual website content
- * (hubs, method gates, LDIA, case studies, legal, contact).
+ * (hubs, LDIA, case studies, legal, contact).
  * The backend checks this first, before running the flow engine,
  * so knowledge questions never derail the qualification conversation.
+ *
+ * The retired gated lifecycle has been removed from the site; every answer here
+ * uses the LDIA architecture (Locate, Design, Implement, Assure) instead.
  */
 export type Lang = "en" | "ar"
 export interface KnowledgeEntry {
@@ -16,303 +19,709 @@ export interface KnowledgeEntry {
 }
 
 export const KNOWLEDGE_BASE: KnowledgeEntry[] = [
+  /* ------------------------------------------------------------------ */
+  /*  Company & who we are                                              */
+  /* ------------------------------------------------------------------ */
+
   {
     id: "about",
-    triggers: ["about", "who", "what is terramorph", "company", "organization", "cairo", "egypt", "founded"],
-    en:
-      "TerraMorph is a Cairo-based social cause incubation company. We shape ideas into structured, fundable cases and guide them through a gated lifecycle (G0 to G7). There's also TerraMorph Society, the community-facing side.",
-    ar:
-      "شركة تيرامورف هي شركة حاضنة للأسباب الاجتماعية مقرها القاهرة. نصوغ الأفكار إلى حالات منظمة وقابلة للتمويل ونوجهها خلال دورة حياة بواباتية (من G0 إلى G7). وهناك أيضًا مجتمع شركة تيرامورف، الجانب المجتمعي.",
+    triggers: [
+      "about", "who", "what is terramorph", "company", "organization",
+      "cairo", "egypt", "founded", "terra morph", "advisory llc",
+    ],
+    en: `TerraMorph Advisory LLC
+Cairo-based social cause advisory.
+
+• We shape ideas into structured, fundable cases
+• Delivered through LDIA — Locate, Design, Implement, Assure
+• Deliberately small: named founder, core team of six, vetted bench of associates
+• Commercial Registration: CR No. 184 562 · Cairo · TIN 742-118-903`,
+    ar: `شركة تيرامورف للاستشارات
+شركة استشارية اجتماعية مقرها القاهرة.
+
+• نصوغ الأفكار إلى حالات منظمة وقابلة للتمويل
+• التنفيذ عبر هندسة LDIA — تحديد، تصميم، تنفيذ، تأكيد
+• شركة صغيرة عن عمد: مؤسس مشارك، وفريق أساسي من ستة أفراد، ومقاعد من الشركاء المفحوصين
+• السجل التجاري: 184 562 · القاهرة · الرقم الضريبي 742-118-903`,
     links: [
       { id: "about", url: "/about", label: "About TerraMorph", labelAr: "عن شركة تيرامورف" },
-      { id: "society", url: "/about", label: "TerraMorph Society", labelAr: "مجتمع شركة تيرامورف" },
+      { id: "team", url: "/about/team", label: "Founder & Team", labelAr: "المؤسس والفريق" },
     ],
   },
+
   {
-    id: "methodology",
-    triggers: ["methodology", "gate", "g0", "g7", "lifecycle", "process", "how it works"],
-    en:
-      "TerraMorph uses a gated lifecycle, G0 through G7. Each gate is a checkpoint where an idea must prove it's ready to advance — from raw concept at G0 to full leveraged scale by G7. Gates: G0 mandate & question, G1 diagnostic, G2 leverage, G3 instrument design, G4 coalition, G5 implementation support, G6 verification, G7 handover.",
-    ar:
-      "تستخدم شركة تيرامورف دورة حياة بواباتية، من G0 إلى G7. كل بوابة هي نقطة تفتيش حيث يجب أن تثبت الفكرة جاهزيتها للتقدم — من الفكرة الخام عند G0 إلى الحجم المُضاعف الكامل عند G7. البوابات: G0 الأمر والسؤال، G1 التشخيص، G2 الرافعة، G3 تصميم الأداة، G4 التحالف، G5 دعم التنفيذ، G6 التحقق، G7 التسليم.",
+    id: "method",
+    triggers: [
+      "method", "methodology", "ldia", "locate", "design", "implement", "assure",
+      "how it works", "process", "architecture", "framework",
+    ],
+    en: `TerraMorph's delivery architecture: LDIA
+
+Four layers behind every engagement:
+
+• Locate — binding constraint + smallest force that moves the largest outcome
+• Design — costed instruments with owners, sequencing, risk registers
+• Implement — embedded in the client institution, monthly dashboards
+• Assure — verify against baseline, publish method, transfer capability`,
+    ar: `هندسة التسليم في شركة تيرامورف: هندسة LDIA
+
+الأربع طبقات وراء كل تعاقد:
+
+• تحديد — القيد الملزم وأصغر قوة تحرك أكبر نتيجة
+• تصميم — أدوات مدفوعة التكلفة مع أصحاب وجداول زمنية وسجل مخاطر
+• تنفيذ — مدمج داخل مؤسسة العميل مع لوحات معلومات شهرية
+• تأكيد — التحقق من النتائج، نشر الطريقة، تسليم القدرة إلى أشخاص مدربين`,
     links: [
-      { id: "methodology", url: "/method", label: "The G0-G7 Gated Lifecycle", labelAr: "دورة الحياة البواباتية G0-G7" },
+      { id: "ldia", url: "/method/ldia", label: "The LDIA Architecture", labelAr: "هندسة LDIA المعمارية" },
+      { id: "instruments", url: "/method/instruments", label: "Instruments", labelAr: "الأدوات" },
     ],
   },
-  {
-    id: "g0",
-    triggers: ["g0", "gate 0", "ignition", "mandate", "question", "fix the question"],
-    en:
-      "G0 — The Ignition Gate. Fix the question, the client, the decision it serves, and the rules it must live inside. Nothing starts without a signed mandate note.",
-    ar:
-      "G0 — بوابة الإشعال. حدد السؤال، والعميل، والقرار الذي يخدمه، والقواعد التي يجب أن تعيش داخلها. لا يبدأ شيء بدون مذكرة مهمة موقعة.",
-    links: [
-      { id: "methodology", url: "/method", label: "G0-G7 Gated Lifecycle", labelAr: "دورة الحياة البواباتية" },
-    ],
-  },
-  {
-    id: "g1",
-    triggers: ["g1", "gate 1", "diagnostic", "binding constraint", "read the ground"],
-    en:
-      "G1 — Diagnostic Gate. Read the ground as it is: institutions, incentives, data. A diagnostic that names the binding constraint, not a list of everything.",
-    ar:
-      "G1 — بوابة التشخيص. اقرأ الواقع كما هو: المؤسسات، والحوافز، والبيانات. تشخيص يحدد القيد الملزم، ليست مجرد قائمة بكل شيء.",
-    links: [
-      { id: "methodology", url: "/method", label: "G0-G7 Gated Lifecycle", labelAr: "دورة الحياة البواباتية" },
-    ],
-  },
-  {
-    id: "g2",
-    triggers: ["g2", "gate 2", "leverage", "smallest force", "compound"],
-    en:
-      "G2 — Leverage Gate. Find the smallest well-placed force that moves the largest outcome — capital, policy or know-how, where it compounds.",
-    ar:
-      "G2 — بوابة الرافعة. اعثر على أصغر قوة موضوعة جيدًا تحرك أكبر نتيجة — رأس المال، أو السياسة، أو الخبرة، حيث تتضاعف.",
-    links: [
-      { id: "methodology", url: "/method", label: "G0-G7 Gated Lifecycle", labelAr: "دورة الحياة البواباتية" },
-    ],
-  },
-  {
-    id: "g3",
-    triggers: ["g3", "gate 3", "instrument", "costed options", "risk register"],
-    en:
-      "G3 — Instrument Gate. Instrument design with costed options, owners and sequencing. Each option carries its own risk register.",
-    ar:
-      "G3 — بوابة الأداة. تصميم الأداة مع خيارات مدفوعة التكلفة، وأصحاب وجدولة. كل خيار يحمل سجل مخاطر خاص به.",
-    links: [
-      { id: "methodology", url: "/method", label: "G0-G7 Gated Lifecycle", labelAr: "دورة الحياة البواباتية" },
-    ],
-  },
-  {
-    id: "g4",
-    triggers: ["g4", "gate 4", "coalition", "partnership", "consultation"],
-    en:
-      "G4 — Coalition Gate. Build the coalition: ministries, partners, private actors. Consultation recorded, objections answered in writing.",
-    ar:
-      "G4 — بوابة التحالف. بنِ التحالف: الوزارات، والشركاء، وأصحاب المصلحة من القطاع الخاص. التشاور مُسجل، والاعتراضات تُجاب عليها كتابيًا.",
-    links: [
-      { id: "methodology", url: "/method", label: "G0-G7 Gated Lifecycle", labelAr: "دورة الحياة البواباتية" },
-    ],
-  },
-  {
-    id: "g5",
-    triggers: ["g5", "gate 5", "implementation", "dashboard", "indicators"],
-    en:
-      "G5 — Implementation Gate. Implementation support embedded in the client institution, with monthly dashboards against the agreed indicators.",
-    ar:
-      "G5 — بوابة التنفيذ. دعم التنفيذ مدمج داخل مؤسسة العميل، مع لوحات معلومات شهرية مقابل المؤشرات المتفق عليها.",
-    links: [
-      { id: "methodology", url: "/method", label: "G0-G7 Gated Lifecycle", labelAr: "دورة الحياة البواباتية" },
-    ],
-  },
-  {
-    id: "g6",
-    triggers: ["g6", "gate 6", "verify", "outcomes", "baseline", "publish"],
-    en:
-      "G6 — Verification Gate. Verify outcomes against baseline. Results published with method, so they can be checked by anyone.",
-    ar:
-      "G6 — بوابة التحقق. التحقق من النتائج مقابل الخط الأساسي. النتائج منشورة مع الطريقة، حتى يمكن لأي شخص التحقق منها.",
-    links: [
-      { id: "methodology", url: "/method", label: "G0-G7 Gated Lifecycle", labelAr: "دورة الحياة البواباتية" },
-    ],
-  },
-  {
-    id: "g7",
-    triggers: ["g7", "gate 7", "handover", "transfer", "no longer needs"],
-    en:
-      "G7 — Handover Gate. Hand over method, tools and trained people. The engagement is successful when the client no longer needs us.",
-    ar:
-      "G7 — بوابة التسليم. تسليم الطريقة، والأدوات والأشخاص المدربين. النجاح عندما لا يحتاج العميل إلينا بعد.",
-    links: [
-      { id: "methodology", url: "/method", label: "G0-G7 Gated Lifecycle", labelAr: "دورة الحياة البواباتية" },
-    ],
-  },
+
   {
     id: "ldia",
-    triggers: ["ldia", "architecture", "lever", "align", "instrument", "deliver", "verify", "publish", "transfer"],
-    en:
-      "LDIA is TerraMorph's delivery architecture: Find the lever, align; Design costed instruments; Deliver embedded, in place; Verify, publish, transfer. It's how we move from idea to verified outcome.",
-    ar:
-      "الهندسة المعمارية للتسليم في شركة تيرامورف: اعثر على الرافعة، وقم بمحاذاة؛ صمم أدواتًا مدفوعة التكلفة؛ سَلّم مدمجًا في المكان؛ تحقّق، وانشر، وانقل. هذه الطريقة التي نتحرك بها من الفكرة إلى النتيجة المؤكدة.",
+    triggers: ["ldia", "locate", "design", "implement", "assure", "four layers"],
+    en: `LDIA — Locate, Design, Implement, Assure
+
+The four layers behind every TerraMorph engagement:
+
+• Locate — diagnose the ground, name the binding constraint
+• Design — costed instruments with risk registers
+• Implement — embedded delivery, monthly indicator reporting
+• Assure — verified results published with method, capability transferred`,
+    ar: `هندسة LDIA — تحديد، تصميم، تنفيذ، تأكيد
+
+الأربع طبقات وراء كل تعاقد مع شركة تيرامورف:
+
+• تحديد — تشخيص الواقع وتسمية القيد الملزم
+• تصميم — أدوات مدفوعة التكلفة مع سجلات مخاطر
+• تنفيذ — تسليم مدمج مع تقارير شهرية عن المؤشرات
+• تأكيد — نتائج مؤكدة تُنشر مع الطريقة، ثم تُسند القدرة`,
     links: [
       { id: "ldia", url: "/method/ldia", label: "The LDIA Architecture", labelAr: "هندسة LDIA المعمارية" },
     ],
   },
+
+  {
+    id: "instruments",
+    triggers: ["instrument", "tool", "diagnostic", "policy", "finance", "skills", "data", "convening", "blended finance", "land-bank", "curricula"],
+    en: `TerraMorph instrument families:
+
+• Binding-constraint diagnostic — isolates the one constraint worth moving
+• Regulatory burden review — maps rule costs on firms
+• Blended-finance structuring — first-loss tranches that unlock commercial capital
+• Employer-validated curricula — co-signed with employers
+• Investment & land-bank maps — bankable uses on a public register
+• Coalition & consultation design — recorded consultation that survives a ministerial change
+
+Every instrument can be licensed or transferred to the client.`,
+    ar: `عائلات الأدوات في شركة تيرامورف:
+
+• تشخيص القيد الملزم — يعزل القيد الوحيد الذي يستحق التحرك
+• مراجعة الأعباء التنظيمية — تُظهِر التكلفة الحقيقية للقواعد على الشركات
+• تنظيم التمويل المختلط — شرائح تحمل خسائر أولية تفتح رأس المال التجاري
+• مناهج معتمدة من أصحاب العمل — تُوقّع مع أصحاب العمل
+• خرائط الاستثمار والأراضي — استخدامات قابلة للتمويل على سجل عام
+• تصميم التحالف والاستشارات — استشارة مسجّلة تبقى صالحة رغم تغيير الوزير
+
+كل أداة يمكن ترخيصها أو تسليمها للعميل.`,
+    links: [
+      { id: "instruments", url: "/method/instruments", label: "Instruments", labelAr: "الأدوات" },
+      { id: "licensing", url: "/method/licensing", label: "Licensing & Open Terms", labelAr: "الترخيص والشروط المفتوحة" },
+    ],
+  },
+
+  /* ------------------------------------------------------------------ */
+  /*  Services & audiences                                                */
+  /* ------------------------------------------------------------------ */
+
   {
     id: "services",
-    triggers: ["service", "advisory", "strategy", "policy", "transformation", "what do you do", "offer"],
-    en:
-      "TerraMorph works as a strategy, policy, and transformation advisory. We shape ideas into structured, fundable cases and guide them through the gated process. Services include diagnostics, instrument design, coalition building, implementation support, and verification.",
-    ar:
-      "تعمل شركة تيرامورف كاستشاري استراتيجية، وسياسة، وتحول. نصوغ الأفكار إلى حالات منظمة وقابلة للتمويل ونوجهها خلال العملية البواباتية. تشمل الخدمات التشخيص، وتصميم الأدوات، وبناء التحالفات، ودعم التنفيذ، والتحقق.",
+    triggers: ["service", "advisory", "strategy", "policy", "transformation", "what do you do", "offer", "services"],
+    en: `TerraMorph advisory services
+
+We shape ideas into structured, fundable cases and guide them through LDIA.
+
+Core services:
+• Diagnostics
+• Instrument design
+• Coalition building
+• Implementation support
+• Verification
+
+Audiences served: governments · development partners · business · NGOs · consultancies`,
+    ar: `خدمات شركة تيرامورف الاستشارية
+
+نصوغ الأفكار إلى حالات منظمة وقابلة للتمويل ونوجهها عبر هندسة LDIA.
+
+الخدمات الأساسية:
+• التشخيص
+• تصميم الأدوات
+• بناء التحالفات
+• دعم التنفيذ
+• التحقق
+
+الجمهور المستهدف: الحكومات · شركاء التنمية · الأعمال · منظمات المجتمع المدني · الاستشاريون`,
     links: [
       { id: "services", url: "/for", label: "Advisory Services", labelAr: "خدمات الاستشارات" },
     ],
   },
+
   {
     id: "governments",
-    triggers: ["government", "governorate", "ministry", "public sector", "procurement", "mandate"],
-    en:
-      "For governments: TerraMorph works with governorates, ministries and public authorities in Egypt — mandate-mapped, procurement-ready, and delivered inside the client's own rules. Public engagements: 11 policies improved, governorates reached across Egypt.",
-    ar:
-      "للحكومات: تعمل شركة تيرامورف مع المحافظات والوزارات والسلطات العامة في مصر — مت mapa التفويض، وجاهزة للمشتريات، ومقدمة داخل قواعد العميل الخاصة. المساهمات العامة: 11 سياسة محسنة، ومحافظات مشمولة عبر مصر.",
+    triggers: ["government", "governorate", "ministry", "public sector", "procurement", "mandate", "public institution"],
+    en: `TerraMorph for governments
+
+We work with governorates, ministries, and public authorities in Egypt — mandate-mapped, procurement-ready, delivered inside your rules.
+
+Stats: 21 public engagements · 9 governorates · 11 policies improved
+
+Services:
+• Investment & land-bank mapping
+• Regulatory burden review
+• Local economic development strategy
+• Embedded delivery support`,
+    ar: `شركة تيرامورف للحكومات
+
+نعمل مع المحافظات والوزارات والسلطات العامة في مصر — عمل موثق بالتكليف، وجاهز للمشتريات، ومنفذ داخل قواعدكم.
+
+الإحصاءات: 21 تعاقدًا عامًا · 9 محافظات · 11 سياسة محسنة
+
+الخدمات:
+• خرائط الاستثمار والأراضي
+• مراجعة الأعباء التنظيمية
+• استراتيجية التنمية الاقتصادية المحلية
+• دعم التنفيذ المدمج`,
     links: [
       { id: "governments", url: "/hub/governments", label: "For Governments", labelAr: "للحكومات" },
     ],
   },
-  {
-    id: "partners",
-    triggers: ["partner", "development partner", "donor", "funding", "investor", "funder"],
-    en:
-      "For development partners: TerraMorph supports donor-funded programmes with registered, framework-eligible delivery and a full, verifiable assignment ledger. Partner engagements: 58 ledger entries, 94% repeat or referred.",
-    ar:
-      "لشركاء التنمية: تدعم شركة تيرامورف البرامج الممولة من المانحين بتسجيل المسجل، والتسليم المؤهل للإطار، وسجل المهام الكامل القابل للتحقق. الشراكات مع الشركاء: 58 إدخال سجل، و94% إعادة إحالة أو مشارَة.",
-    links: [
-      { id: "partners", url: "/hub/development-partners", label: "Partnership Models", labelAr: "نماذج الشراكة" },
-    ],
-  },
+
   {
     id: "business",
-    triggers: ["business", "private sector", "diagnostic", "bookable", "fixed price", "capital"],
-    en:
-      "For business: a price-bearing diagnostic with a bookable date, costed options and a clear decision — no sales call. Reply time: 2 days. Leverage per EGP fee: 0.7x portfolio median.",
-    ar:
-      "للأعمال: تشخيص مدفوع الثمن مع تاريخ محجوز، وخيارات مدفوعة التكلفة وقرار واضح — بدون مكالمة مبيعات. وقت الرد: يومان. الرافعة لكل جنيه مصري رسوم: 0.7x الوسيط في المحفظة.",
+    triggers: ["business", "private sector", "enterprise", "investor", "diagnostic", "bookable", "price", "cost"],
+    en: `TerraMorph for business
+
+A price-bearing diagnostic with a bookable date — not a sales call.
+
+• Fixed price, scoped up front
+• Costed options with risk registers
+• Clear decision at the end
+• Reply time: within two working days
+• Leverage per EGP fee: 0.7x portfolio median`,
+    ar: `شركة تيرامورف للأعمال
+
+تشخيص معلن السعر مع موعد قابل للحجز — ليس مكالمة بيع.
+
+• سعر ثابت، ونطاق محدد سلفًا
+• خيارات مدفوعة التكلفة مع سجلات مخاطر
+• قرار واضح في النهاية
+• وقت الرد: خلال يومي عمل
+• الرافعة لكل جنيه مصري رسوم: 0.7x الوسيط في المحفظة`,
     links: [
       { id: "business", url: "/hub/business", label: "For Business", labelAr: "للأعمال" },
     ],
   },
+
   {
     id: "ngos",
-    triggers: ["ngo", "social enterprise", "civil society", "capacity", "open licence", "toolkit"],
-    en:
-      "For NGOs: TerraMorph supports civil society with open-licence tools, free toolkits, and capacity-building partnerships. We work on livelihoods, youth empowerment, skills training, and underserved areas.",
-    ar:
-      "لمنظمات المجتمع المدني: تدعم شركة تيرامورف المجتمع المدني بأدوات ترخيص مفتوح، وحزم أدوات مجانية، وشراكات بناء القدرات. نعمل على سبل العيش، وتمكين الشباب، والتدريب على المهارات، والمناطق المحرومة.",
+    triggers: ["ngo", "social enterprise", "civil society", "capacity", "free", "toolkit", "open licence", "small budget"],
+    en: `TerraMorph for NGOs
+
+Open-licence tools, free toolkits, and a scaled engagement model.
+
+• Free toolkits: LED diagnostic toolkit, mandate-note template (CC BY 4.0)
+• Capacity-building partnerships — skill stays with your team
+• Small-budget engagement model`,
+    ar: `شركة تيرامورف لمنظمات المجتمع المدني
+
+أدوات ترخيص مفتوح، وحزم أدوات مجانية، ونموذج تعاون مصغّر.
+
+• حزم أدوات مجانية: حقيبة التشخيص LED، ونموذج مذكرة التفويض (رخصة CC BY 4.0)
+• شراكات بناء القدرات — المهارة تبقى مع فريقك
+• نموذج تعاون مصغّر للميزانيات الصغيرة`,
     links: [
       { id: "ngos", url: "/hub/ngos", label: "For NGOs", labelAr: "لمنظمات المجتمع المدني" },
     ],
   },
+
   {
     id: "consultancies",
-    triggers: ["consultancy", "consulting", "alliance", "strategic", "framework"],
-    en:
-      "For consultancies: strategic alliance and framework partnership models. We collaborate on delivery, M&E, and skills transfer across sectors.",
-    ar:
-      "للاستشاريين: نماذج التحالف الاستراتيجي والشراكة الإطارية. نتعاون في التنفيذ، والمراقبة والتقييم، ونقل المهارات عبر القطاعات.",
+    triggers: ["consultancy", "consulting", "prime", "sub-partner", "teaming", "bid", "compliance", "alliance"],
+    en: `TerraMorph for consultancies
+
+A specialist sub-partner with method, local reach, and a clean compliance file.
+
+Certifications: ISO 37001 · ISO/IEC 27001 · ISO 9001 · CR 184 562
+
+We bring:
+• LED, policy, TVET, and investment-climate expertise
+• Named CVs (not anonymised placeholders)
+• Joint methodology alignment with your delivery framework`,
+    ar: `شركة تيرامورف للاستشاريين
+
+شريك متخصص من الباطن مع منهج، وانتشار محلي، وملف امتثال نظيف.
+
+الشهادات: ISO 37001 · ISO/IEC 27001 · ISO 9001 · السجل التجاري 184 562
+
+نجلب:
+• خبرة في التنمية الاقتصادية المحلية، والسياسة، والتعليم التقني والمهني، والمناخ الاستثماري
+• سير ذاتية مدرّجة (ليست أماكن مجهولة)
+• تماشٍ منهجي مشترك مع إطار التسليم الخاص بكم`,
     links: [
       { id: "consultancies", url: "/hub/consultancies", label: "For Consultancies", labelAr: "للاستشاريين" },
     ],
   },
+
+  {
+    id: "partners",
+    triggers: ["development partner", "donor", "funding", "investor", "funder", "framework", "ledger"],
+    en: `TerraMorph for development partners
+
+Registered, framework-eligible delivery with a full, verifiable assignment ledger.
+
+• 58 ledger entries · 94% repeat or referred
+• ISO 37001/27001/9001 certified
+• Egyptian commercial registration: CR 184 562 · Tax ID: 742-118-903`,
+    ar: `شركة تيرامورف لشركاء التنمية
+
+تسليم مؤهل للإطار ومُسجّل مع سجل مهام كامل يمكن التحقق منه.
+
+• 58 إدخالًا في السجل · 94% إعادة إحالة أو مرجعية
+• معتمدة في ISO 37001/27001/9001
+• السجل التجاري المصري: 184 562 · الرقم الضريبي: 742-118-903`,
+    links: [
+      { id: "partners", url: "/hub/development-partners", label: "Partnership Models", labelAr: "نماذج الشراكة" },
+    ],
+  },
+
   {
     id: "careers",
-    triggers: ["career", "job", "work with us", "join", "expert", "expert network", "careers"],
-    en:
-      "Careers & Experts Network: TerraMorph works with experts and associates across governance, climate, health, livelihoods, and more. Apply to join our expert network or view current opportunities.",
-    ar:
-      "الوظائف وشبكة الخبراء: تعمل شركة تيرامورف مع خبراء وأعضاء associés عبر الحوكمة، والمناخ، والصحة، وسبل العيش، والمزيد. تقدم للانضمام إلى شبكة خبرائنا أو اعرض الفرص الحالية.",
+    triggers: ["career", "job", "work with us", "join", "expert", "expert network", "vacancy", "roles"],
+    en: `TerraMorph careers
+
+We name our people — every role lists a salary band, and you interview with the people you would actually work with.
+
+Open roles:
+• Senior policy analyst
+• LED field coordinator
+• GIS data analyst
+• Learning associate
+
+Internships: AAST (paid, mentored)
+Expert network: register once, matched to live assignments`,
+    ar: `الوظائف في شركة تيرامورف
+
+نسمّي أفرادنا — كل وظيفة تدرج نطاقًا راتبيًا، وتجري مقابلتك مع الأشخاص الذين ستعمل معهم بالفعل.
+
+الوظائف المفتوحة:
+• محلل سياسات أول
+• منسق ميداني للتنمية الاقتصادية المحلية
+• محلل بيانات GIS
+• متعلم داعم
+
+التدريبات: مع الأكاديمية العربية (مدفوعة، مع مرشد)
+شبكة الخبراء: سجّل مرة واحدة، وتُطابق مع المهام الحية`,
     links: [
-      { id: "careers", url: "/join/careers", label: "Careers & Experts", labelAr: "الوظائف والخبراء" },
+      { id: "careers", url: "/join/careers", label: "Careers & Vacancies", labelAr: "الوظائف والشواغر" },
+      { id: "experts", url: "/join/experts", label: "Expert Network", labelAr: "شبكة الخبراء" },
     ],
   },
+
+  /* ------------------------------------------------------------------ */
+  /*  Evidence & impact                                                   */
+  /* ------------------------------------------------------------------ */
+
   {
-    id: "case-studies",
-    triggers: ["case study", "evidence", "impact", "assiut", "1.2bn", "result", "verified"],
-    en:
-      "Case studies are written to be checked. A governorate investment map moved EGP 1.2bn across three underused industrial zones matched with 46 financeable uses. Impact report 2026 published with its underlying data.",
-    ar:
-      "دراسات الحالة مكتوبة حتى يتم التحقق منها. خريطة استثمار محافظة نقلت 1.2 مليار جنيه مصري عبر ثلاث مناطق صناعية غير مستغلة جيدًا تم مطابقتها مع 46 استخدامًا قابلًا للتمويل. تقرير الأثر 2026 منشور مع بياناته الأساسية.",
+    id: "cases",
+    triggers: ["case study", "evidence", "impact", "assiut", "result", "verified", "outcome", "example"],
+    en: `TerraMorph case studies
+
+Written to be checked — every number is verifiable.
+
+• Governorate investment map: EGP 1.2bn into 3 industrial zones, 46 bankable uses
+• 14 technical schools re-tooled: graduation-to-job 21% → 48% within 90 days
+• Blended finance for women-led agri cooperative: unlocked matching commercial facility
+• Impact Report 2026: EGP 1.9bn capital catalysed, 4,100 people trained, 11 policies improved`,
+    ar: `دراسات حالة شركة تيرامورف
+
+مكتوبة للتحقق منها — كل رقم قابل للتحقق.
+
+• خريطة استثمار محافظة: 1.2 مليار جنيه إلى 3 مناطق صناعية، 46 استخدامًا قابلًا للتمويل
+• تأهيل 14 مدرسة فنية: ارتفاع التخرج إلى وظيفة من 21% إلى 48% خلال 90 يومًا
+• تمويل مختلط لتعاونية زراعية تقودها نساء: فتح منشأة تجارية مطابقة
+• تقرير الأثر 2026: 1.9 مليار جنيه رأس مال محفز، و4,100 شخص تم تدريبهم، و11 سياسة محسنة`,
     links: [
       { id: "case-studies", url: "/evidence/case-studies", label: "Case Studies", labelAr: "دراسات الحالة" },
+      { id: "impact-report", url: "/evidence/impact-report", label: "Impact Report 2026", labelAr: "تقرير الأثر 2026" },
     ],
   },
+
   {
     id: "certifications",
-    triggers: ["certification", "iso", "compliance", "anti-bribery", "certificate"],
-    en:
-      "Certifications & compliance marks: ISO 37001:2022 (anti-bribery), ISO/IEC 27001:2022 (information security), ISO 9001:2015 (quality management). Verified certificate copies available on request.",
-    ar:
-      "الشهادات وعلامات الامتثال: ISO 37001:2022 (مكافحة الرشوة)، ISO/IEC 27001:2022 (أمن المعلومات)، ISO 9001:2015 (إدارة الجودة). نسخ معتمدة من الشهادات متاحة عند الطلب.",
+    triggers: ["certification", "iso", "compliance", "certificate", "anti-bribery", "security", "quality", "registered"],
+    en: `Certifications & compliance
+
+• ISO 37001:2022 — anti-bribery management
+• ISO/IEC 27001:2022 — information security
+• ISO 9001:2015 — quality management
+• Commercial Registration: CR No. 184 562 · Cairo
+• Tax ID: TIN 742-118-903
+
+Verified certificate copies released to procurement teams within one working day.`,
+    ar: `الشهادات والامتثال
+
+• ISO 37001:2022 — نظام إدارة مكافحة الرشوة
+• ISO/IEC 27001:2022 — أمن المعلومات
+• ISO 9001:2015 — إدارة الجودة
+• السجل التجاري: 184 562 · القاهرة
+• الرقم الضريبي: 742-118-903
+
+تُصدر نسخ معتمدة من الشهادات لفرق المشتريات خلال يوم عمل واحد.`,
     links: [
       { id: "certifications", url: "/evidence/certifications", label: "Certifications", labelAr: "الشهادات" },
     ],
   },
+
+  /* ------------------------------------------------------------------ */
+  /*  Contact & offices                                                   */
+  /* ------------------------------------------------------------------ */
+
   {
     id: "contact",
-    triggers: ["contact", "reach", "email", "phone", "follow up", "team", "where are you"],
-    en:
-      "Contact the TerraMorph team: info@askterramorph.com for data protection, copyright@askterramorph.com for DMCA, or use the contact page. We're based in New Cairo, Egypt. CR No. 184 562, TIN 742-118-903.",
-    ar:
-      "اتصل بفريق شركة تيرامورف: info@askterramorph.com لحماية البيانات، copyright@askterramorph.com لـ DMCA، أو استخدم صفحة الاتصال. نحن مقرنا في القاهرة الجديدة، مصر. السجل التجاري 184 562، الرقم الضريبي 742-118-903.",
+    triggers: ["contact", "reach", "email", "phone", "team", "where", "office", "cairo", "assiut", "alexandria"],
+    en: `Contact TerraMorph
+
+New Cairo head office (Sun–Thu, 09:00–17:00 EET)
+Field presences: Assiut (Upper Egypt) · Alexandria (Delta)
+
+Email:
+• hello@askterramorph.com — new engagements
+• tenders@askterramorph.com — procurement
+• info@askterramorph.com — data protection
+
+Phone: +20 115 000 0984
+Website: https://askterramorph.com
+
+Replies within one working day from a named person.`,
+    ar: `تواصل مع شركة تيرامورف
+
+المكتب الرئيسي في القاهرة الجديدة (الأحد–الخميس، 09:00–17:00 بتوقيت القاهرة)
+تواجد ميداني: أسيوط (صعيد مصر) · الإسكندرية (الدلتا)
+
+البريد الإلكتروني:
+• hello@askterramorph.com — التعاقدات الجديدة
+• tenders@askterramorph.com — المشتريات
+• info@askterramorph.com — حماية البيانات
+
+الهاتف: +20 115 000 0984
+الموقع الإلكتروني: https://askterramorph.com
+
+الرد خلال يوم عمل واحد من شخص محدد الاسم.`,
     links: [
-      { id: "contact", url: "/contact", label: "Contact the Team", labelAr: "تواصل مع الفريق" },
+      { id: "contact", url: "/about/contact", label: "Contact & Offices", labelAr: "التواصل والمكاتب" },
     ],
   },
+
+  /* ------------------------------------------------------------------ */
+  /*  Legal & compliance                                                  */
+  /* ------------------------------------------------------------------ */
+
   {
-    id: "data-request",
-    triggers: ["data request", "access", "delete", "privacy", "gdpr", "personal data", "my data"],
-    en:
-      "Data subject rights: you can request access to, rectification of, or deletion of your personal data via the Data Request page. We respond within 30 days. Email info@askterramorph.com.",
-    ar:
-      "حقوق أصحاب البيانات: يمكنك طلب الوصول إلى، أو تصحيح، أو حذف بياناتك الشخصية عبر صفحة طلب البيانات. نرد خلال 30 يومًا. راسل info@askterramorph.com.",
+    id: "privacy",
+    triggers: ["privacy", "data protection", "pdpl", "gdpr", "personal data", "my data", "controller"],
+    en: `Privacy — TerraMorph Advisory LLC
+
+Data controller under Egypt PDPL No. 151 of 2020 (GDPR-aligned).
+
+Data processed with lawful basis:
+• Identity data
+• Engagement data
+• Technical data
+• Cookie data
+• Marketing data (explicit opt-in only)
+
+Retention:
+• Engagement records: 10 years
+• Correspondence: 7 years
+
+Your rights: access · rectification · deletion — respond within 30 days
+
+Contact: info@askterramorph.com`,
+    ar: `الخصوصية — شركة تيرامورف للاستشارات
+
+المتحكم في البيانات بموجب قانون حماية البيانات الشخصية المصري رقم 151 لسنة 2020 (مناسب لـ GDPR).
+
+البيانات المُعالجة بناءً على أساس قانوني:
+• بيانات الهوية
+• بيانات التعاقد
+• البيانات التقنية
+• بيانات ملفات تعريف الارتباط
+• بيانات التسويق (بموافقة صريحة فقط)
+
+الفترة المحددة للاحتفاظ:
+• سجلات التعاقدات: 10 سنوات
+• المراسلات: 7 سنوات
+
+حقوقك: الوصول · التصحيح · الحذف — الرد خلال 30 يومًا
+
+للاتصال: info@askterramorph.com`,
     links: [
+      { id: "privacy", url: "/legal/privacy-policy", label: "Privacy Policy", labelAr: "سياسة الخصوصية" },
       { id: "data-request", url: "/data-request", label: "Data Request", labelAr: "طلب بيانات" },
     ],
   },
+
   {
-    id: "marketing",
-    triggers: ["newsletter", "marketing", "unsubscribe", "opt-in", "email list"],
-    en:
-      "Marketing: We only send emails with your explicit opt-in. Granular lists: newsletter, events, insights, careers. Every email includes a one-click unsubscribe link.",
-    ar:
-      "التسويق: نرسل رسائل بريد إلكتروني فقط بموافقتك الصريحة. قوائم مفصلة: النشرة الإخبارية، الأحداث، الرؤى، الوظائف. كل بريد إلكتروني يتضمن رابط إلغاء اشتراك بنقرة واحدة.",
+    id: "data-request",
+    triggers: ["data request", "access", "rectification", "deletion", "erasure", "dsar", "rights"],
+    en: `Data subject rights
+
+Request via the Data Request page:
+• Access to your personal data
+• Rectification
+• Restriction
+• Portability
+• Objection
+• Erasure
+
+We verify your identity and respond within 30 days under Egypt PDPL and GDPR-aligned standards.`,
+    ar: `حقوق أصحاب البيانات
+
+اطلب عبر صفحة طلب البيانات:
+• الوصول إلى بياناتك الشخصية
+• التصحيح
+• التقييد
+• النقل
+• الاعتراض
+• الحذف
+
+نتحقق من هويتنا ونرد خلال 30 يومًا بموجب قانون حماية البيانات الشخصية المصري ومعايير مناسِبة لـ GDPR.`,
     links: [
-      { id: "unsubscribe", url: "/unsubscribe", label: "Unsubscribe", labelAr: "إلغاء الاشتراك" },
+      { id: "data-request", url: "/data-request", label: "Data Request", labelAr: "طلب بيانات" },
+      { id: "privacy", url: "/legal/privacy-policy", label: "Privacy Policy", labelAr: "سياسة الخصوصية" },
     ],
   },
+
   {
     id: "cookies",
-    triggers: ["cookie", "consent", "tracking", "analytics", "essential"],
-    en:
-      "Cookies: We use essential cookies for session and security. Analytics and marketing cookies are optional and require your consent. You can manage preferences via the cookie banner or the Cookie Policy page.",
-    ar:
-      "ملفات تعريف الارتباط: نستخدم ملفات تعريف الارتباط الأساسية للجلسة والأمان. ملفات تعريف الارتباط التحليلية والتسويقية اختيارية وتتطلب موافقتك. يمكنك إدارة التفضيلات عبر شريط تعريف الارتباط أو صفحة سياسة ملفات تعريف الارتباط.",
+    triggers: ["cookie", "consent", "tracking", "analytics", "essential", "tm_session"],
+    en: `Cookies
+
+Essential cookies (no consent needed):
+• tm_session — authentication
+• csrf_token — CSRF protection
+• cookie_consent — your consent choices
+
+Analytics & marketing cookies require your explicit opt-in and are blocked until consent is given.
+
+Manage preferences via the cookie banner or Cookie Policy page.`,
+    ar: `ملفات تعريف الارتباط
+
+ملفات تعريف الارتباط الأساسية (بدون موافقة):
+• tm_session — المصادقة
+• csrf_token — حماية CSRF
+• cookie_consent — تفضيلات موافقتك
+
+ملفات تعريف الارتباط التحليلية والتسويقية تتطلب موافقتك الصريحة وتُحظر حتى تُعطى الموافقة.
+
+إدارة التفضيلات عبر شريط ملفات تعريف الارتباط أو صفحة سياسة ملفات تعريف الارتباط.`,
     links: [
       { id: "cookie-policy", url: "/legal/cookie-policy", label: "Cookie Policy", labelAr: "سياسة ملفات تعريف الارتباط" },
     ],
   },
+
   {
-    id: "dmca",
-    triggers: ["dmca", "copyright", "takedown", "infringement", "copyright agent"],
-    en:
-      "DMCA: If you believe content on askterramorph.com infringes your copyright, contact our designated copyright agent at copyright@askterramorph.com. We respond to valid takedown notices.",
-    ar:
-      "DMCA: إذا كنت تعتقد أن المحتوى على askterramorph.com ينتهك حقوق الطبع والنشر الخاصة بك، اتصل بوكيل حقوق الطبع والنشر المعين لدينا على copyright@askterramorph.com. نرد على إشعارات الإزالة الصالحة.",
+    id: "marketing",
+    triggers: ["newsletter", "marketing", "unsubscribe", "opt-in", "email list", "subscribe"],
+    en: `Marketing
+
+We only send emails with your explicit opt-in.
+
+Granular lists:
+• Newsletter
+• Events
+• Insights
+• Careers
+
+Every email includes a one-click unsubscribe link (RFC 8058 List-Unsubscribe).
+
+You can manage or withdraw consent at any time.`,
+    ar: `التسويق
+
+نرسل رسائل بريد إلكتروني فقط بموافقتك الصريحة.
+
+القوائم المفصلة:
+• النشرة الإخبارية
+• الأحداث
+• الرؤى
+• الوظائف
+
+كل بريد إلكتروني يتضمن رابط إلغاء اشتراك بنقرة واحدة (RFC 8058).
+
+يمكنك إدارة أو سحب الموافقة في أي وقت.`,
     links: [
-      { id: "dmca", url: "/legal/dmca-policy", label: "DMCA Policy", labelAr: "سياسة DMCA" },
+      { id: "unsubscribe", url: "/unsubscribe", label: "Unsubscribe", labelAr: "إلغاء الاشتراك" },
+      { id: "newsletter", url: "/join/newsletter", label: "Newsletter", labelAr: "النشرة الإخبارية" },
     ],
   },
+
   {
-    id: "refund",
-    triggers: ["refund", "cancellation", "cancel", "money back", "fee", "price"],
-    en:
-      "Refunds & cancellation: Service-type-specific refund rules apply. You can cancel your subscription with one click — no hidden fees, auto-renewal disclosed 30 days in advance.",
-    ar:
-      "الإلغاء والاسترداد: قواعد استرداد خاصة بنوع الخدمة تُطبق. يمكنك إلغاء اشتراكك بنقرة واحدة — بدون رسوم مخفية، والتجديد التلقائي يُكشف عنه قبل 30 يومًا.",
+    id: "terms",
+    triggers: ["terms", "terms of service", "agreement", "engagement", "fee", "payment", "liability", "confidentiality"],
+    en: `Terms of Service
+
+Governs use of askterramorph.com, the client portal, and advisory services.
+
+• Scope, deliverables, timeline, and fees defined in each Engagement Letter
+• Confidentiality: 3 years from disclosure
+• TerraMorph IP remains our property
+• Clients receive a perpetual, non-exclusive licence to use deliverables internally`,
+    ar: `شروط الخدمة
+
+ت تحكم استخدام askterramorph.com، وبوابة العميل، وخدمات الاستشارات.
+
+• النطاق والمخرجات والجدول الزمني والرسوم تُحدّد في كل خطاب تعاقد
+• السرية: 3 سنوات من الإفصاح
+• ملكية شركة تيرامورف الفكرية تظل ملكًا لنا
+• العملاء يحصلون على ترخيص دائم غير حصري لاستخدام المخرجات داخليًا`,
     links: [
       { id: "terms", url: "/legal/terms-of-service", label: "Terms of Service", labelAr: "شروط الخدمة" },
     ],
   },
+
+  {
+    id: "refund",
+    triggers: ["refund", "cancellation", "cancel", "money back", "auto-renew", "hidden fee"],
+    en: `Refunds & cancellation
+
+• Service-type-specific refund rules apply
+• Cancel your subscription with one click
+• No hidden fees
+• Auto-renewal disclosed 30 days in advance`,
+    ar: `الإلغاء والاسترداد
+
+• قواعد استرداد خاصة بنوع الخدمة تُطبّق
+• إلغاء اشتراكك بنقرة واحدة
+• بدون رسوم مخفية
+• الكشف عن التجديد التلقائي قبل 30 يومًا`,
+    links: [
+      { id: "terms", url: "/legal/terms-of-service", label: "Terms of Service", labelAr: "شروط الخدمة" },
+    ],
+  },
+
+  {
+    id: "dmca",
+    triggers: ["dmca", "copyright", "takedown", "infringement", "copyright agent"],
+    en: `DMCA
+
+Designated copyright agent: copyright@askterramorph.com
+
+We respond to valid takedown notices per applicable law.
+
+TerraMorph is not a US entity but respects copyright.`,
+    ar: `سياسة DMCA
+
+وكيل حقوق الطبع والنشر المعين: copyright@askterramorph.com
+
+نرد على إشعارات الإزالة الصالحة بموجب القانون المعمول به.
+
+شركة تيرامورف ليست كيانًا أمريكيًا لكنها تحترم حقوق الطبع والنشر.`,
+    links: [
+      { id: "dmca", url: "/legal/dmca-policy", label: "DMCA Policy", labelAr: "سياسة DMCA" },
+    ],
+  },
+
+  {
+    id: "sub-processors",
+    triggers: ["sub-processor", "subprocessor", "third party", "sdk", "analytics", "vendor"],
+    en: `Sub-processors
+
+TerraMorph uses sub-processors for:
+• Session authentication (tm_session cookie)
+• CSRF protection
+• Optional analytics & marketing (only after consent)
+
+Full list: /legal/sub-processors
+
+No AI training on your data — messages are processed to answer you and are not used for model training.`,
+    ar: `المعالجون الفرعيون
+
+تستخدم شركة تيرامورف معالجين فرعيين لـ:
+• المصادقة على الجلسة (ملف تعريف ارتباط tm_session)
+• حماية CSRF
+• التحليلات والتسويق الاختياري (فقط بعد الموافقة)
+
+القائمة الكاملة: /legal/sub-processors
+
+لا تدريب للذكاء الاصطناعي على بياناتك — تُعالج الرسائل للرد عليك ولا تُستخدم لتدريب النماذج.`,
+    links: [
+      { id: "sub-processors", url: "/legal/sub-processors", label: "Sub-processors", labelAr: "المعالجون الفرعيون" },
+    ],
+  },
+
   {
     id: "greeting",
-    triggers: ["hi", "hello", "hey", "morpeh", "morphe", "assistant", "help"],
-    en:
-      "Hi, I'm Morphe — TerraMorph's intake assistant. I can help you understand the G0-G7 gated lifecycle, our services for governments/partners/business/NGOs, case studies, certifications, or get you in touch with the team. What brings you here today?",
-    ar:
-      "مرحبًا، أنا مورفي — مساعد الاستقبال في شركة تيرامورف. يمكنني مساعدتك في فهم دورة الحياة البواباتية G0-G7، وخدماتنا للحكومات/الشركاء/الأعمال/منظمات المجتمع المدني، ودراسات الحالة، والشهادات، أو التواصل مع الفريق. ماذا يجلبك اليوم؟",
+    triggers: ["hi", "hello", "hey", "morphe", "assistant", "help", "start", "begin"],
+    en: `Hello! I'm Morphe
+
+TerraMorph's AI intake assistant — here to help you understand:
+
+• Our advisory services
+• LDIA delivery architecture
+• Our work for governments, business, NGOs, development partners
+• Case studies & certifications
+• Careers & expert network
+• Getting in touch with the team
+
+What brings you here today?`,
+    ar: `مرحبًا! أنا مورفي
+
+المساعد الذكي لاستقبال العملاء في شركة تيرامورف — هنا لمساعدتك في فهم:
+
+• خدماتنا الاستشارية
+• هندسة LDIA للتسليم
+• عملنا للحكومات، والأعمال، ومنظمات المجتمع المدني، وشركاء التنمية
+• دراسات الحالة والشهادات
+• الوظائف وشبكة الخبراء
+• التواصل مع الفريق
+
+ماذا يجلبك اليوم؟`,
     links: [
-      { id: "methodology", url: "/method", label: "G0-G7 Lifecycle", labelAr: "الدورة البواباتية" },
       { id: "services", url: "/for", label: "Services", labelAr: "الخدمات" },
+      { id: "ldia", url: "/method/ldia", label: "LDIA Architecture", labelAr: "هندسة LDIA" },
+    ],
+  },
+
+  /* ------------------------------------------------------------------ */
+  /*  Learning & courses                                                  */
+  /* ------------------------------------------------------------------ */
+
+  {
+    id: "learning",
+    triggers: ["course", "training", "learning", "certification", "trainer", "academy", "programme", "class"],
+    en: `TerraMorph learning programmes
+
+Practitioner courses:
+• Local Economic Development — 3 days · EGP 9,500
+• Train-the-Trainer certification — 5 days · EGP 18,000
+• Tailored Diagnostics for Public Institutions — 4×2h online · EGP 4,200
+• Welcome Method for NGOs — free, self-paced
+
+Open programmes: Cairo · Alexandria · online
+Certified trainers listed on a public register`,
+    ar: `برامج التعلّم في شركة تيرامورف
+
+برامج للممارسين:
+• التنمية الاقتصادية المحلية — 3 أيام · 9,500 جنيه مصري
+• تدريب المدربين (شهادة) — 5 أيام · 18,000 جنيه مصري
+• التشخيص المصمم للمؤسسات العامة — 4×2 ساعة عبر الإنترنت · 4,200 جنيه مصري
+• طريقة الترحيب لمنظمات المجتمع المدني — مجاني، ذاتي الوتيرة
+
+البرامج المفتوحة: القاهرة · الإسكندرية · عبر الإنترنت
+المدربون المعتمدون مدرجون في سجل عام`,
+    links: [
+      { id: "catalogue", url: "/learning/catalogue", label: "Course Catalogue", labelAr: "دليل الدورات" },
+      { id: "calendar", url: "/learning/calendar", label: "Programmes Calendar", labelAr: "تقويم البرامج" },
     ],
   },
 ]
@@ -323,7 +732,13 @@ export function findKnowledgeAnswer(text: string, lang: Lang): KnowledgeEntry | 
   let bestScore = 0
 
   for (const entry of KNOWLEDGE_BASE) {
-    const hits = entry.triggers.filter((t) => lower.includes(t.toLowerCase())).length
+    // Count trigger hits, with extra weight for the first (primary) trigger
+    let hits = 0
+    for (const t of entry.triggers) {
+      if (lower.includes(t.toLowerCase())) {
+        hits += entry.triggers[0] === t ? 2 : 1
+      }
+    }
     if (hits > bestScore) {
       bestScore = hits
       best = entry
