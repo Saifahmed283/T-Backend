@@ -254,7 +254,7 @@ export const KNOWLEDGE_BASE: KnowledgeEntry[] = [
     en:
       "Data subject rights: you can request access to, rectification of, or deletion of your personal data via the Data Request page. We respond within 30 days. Email info@askterramorph.com.",
     ar:
-      "حقوق أصحاب البيانات: يمكنك 요청 الوصول إلى، أو تصحيح، أو حذف بياناتك الشخصية عبر صفحة طلب البيانات. نرد خلال 30 يومًا. راسل info@askterramorph.com.",
+      "حقوق أصحاب البيانات: يمكنك طلب الوصول إلى، أو تصحيح، أو حذف بياناتك الشخصية عبر صفحة طلب البيانات. نرد خلال 30 يومًا. راسل info@askterramorph.com.",
     links: [
       { id: "data-request", url: "/data-request", label: "Data Request", labelAr: "طلب بيانات" },
     ],
