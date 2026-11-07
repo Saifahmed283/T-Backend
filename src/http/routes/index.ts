@@ -12,6 +12,7 @@ import { registerSettingsRoutes } from './settings.routes.js'
 import { registerSubmissionRoutes } from './submissions.routes.js'
 import { registerTermsAcceptanceRoutes } from './terms-acceptance.routes.js'
 import { registerMorpheRoutes } from '../../modules/morphe/routes.js'
+import { registerMorpheAiRoutes } from '../../modules/morphe/morphe-ai-routes.js'
 
 export async function registerRoutes(app: FastifyInstance) {
   // Liveness: is the process up? Never touches the database.
@@ -43,4 +44,5 @@ export async function registerRoutes(app: FastifyInstance) {
   await registerMarketingConsentRoutes(app)
   await registerTermsAcceptanceRoutes(app)
   await registerMorpheRoutes(app)
+  await registerMorpheAiRoutes(app)
 }
