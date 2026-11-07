@@ -4,6 +4,8 @@ import { registerActivityRoutes } from './activity.routes.js'
 import { registerAssetRoutes } from './assets.routes.js'
 import { registerAuthRoutes } from './auth.routes.js'
 import { registerContentRoutes } from './content.routes.js'
+import { registerDataRequestRoutes } from './data-requests.routes.js'
+import { registerMarketingConsentRoutes } from './marketing-consent.routes.js'
 import { registerMemberRoutes } from './members.routes.js'
 import { registerPublicRoutes } from './public.routes.js'
 import { registerSettingsRoutes } from './settings.routes.js'
@@ -35,4 +37,6 @@ export async function registerRoutes(app: FastifyInstance) {
   await registerAssetRoutes(app)
   await registerSettingsRoutes(app)
   await registerMemberRoutes(app)
+  await registerDataRequestRoutes(app)
+  await registerMarketingConsentRoutes(app)
 }

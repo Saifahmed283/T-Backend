@@ -11,8 +11,12 @@ export type EmailMessage = {
   to: string
   subject: string
   text: string
+  /** Optional HTML body. If omitted, text is used as-is. */
+  html?: string
   /** Optional tag used in logs, e.g. 'submission.receipt'. */
   kind?: string
+  /** Optional List-Unsubscribe header value(s) for marketing emails. */
+  listUnsubscribe?: string | string[]
 }
 
 export type SendEmailResult = {
@@ -56,17 +60,25 @@ export async function sendEmail(message: EmailMessage, logger?: EmailLogger): Pr
 
   try {
     switch (config.EMAIL_PROVIDER) {
-      case 'memory':
+      case 'memory': {
         outbox.push({ ...message })
         break
-      case 'log':
-        // Development/fallback provider: the complete message is visible in the
-        // server log so a reset link can be followed locally.
+      }
+      case 'log': {
         logger?.info(
-          { event: 'email.sent', provider: 'log', to: message.to, subject: message.subject, kind: message.kind, text: message.text },
+          {
+            event: 'email.sent',
+            provider: 'log',
+            to: message.to,
+            subject: message.subject,
+            kind: message.kind,
+            text: message.text,
+            listUnsubscribe: message.listUnsubscribe,
+          },
           'email rendered to log',
         )
         break
+      }
     }
     if (config.EMAIL_PROVIDER !== 'log') {
       logger?.info(

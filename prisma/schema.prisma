@@ -96,18 +96,19 @@ model User {
 }
 
 model Workspace {
-  id           String            @id @default(cuid())
-  name         String
-  slug         String            @unique
-  createdAt    DateTime          @default(now())
-  updatedAt    DateTime          @updatedAt
-  members      WorkspaceMember[]
-  assignments  Assignment[]
-  activities   ActivityLog[]
-  experts      Expert[]
-  contentItems ContentItem[]
-  assets       Asset[]
-  siteSetting  SiteSetting?
+  id            String            @id @default(cuid())
+  name          String
+  slug          String            @unique
+  createdAt     DateTime          @default(now())
+  updatedAt     DateTime          @updatedAt
+  members       WorkspaceMember[]
+  assignments   Assignment[]
+  activities    ActivityLog[]
+  experts       Expert[]
+  contentItems  ContentItem[]
+  assets        Asset[]
+  siteSetting   SiteSetting?
+  dataRequests  DataRequest[]
 }
 
 model WorkspaceMember {
@@ -316,19 +317,25 @@ enum NewsletterSubscriberStatus {
 }
 
 // Mailing-list opt-ins. Platform-level (not tenant data) and deliberately
-// separate from Submission: it models double opt-in state and interests.
+// separate from Submission: it models double opt-in state and granular
+// marketing-list interests (newsletter, events, insights, careers) plus
+// single-click unsubscribe via List-Unsubscribe headers.
 model NewsletterSubscriber {
   id          String                     @id @default(cuid())
   email       String                     @unique
-  interests   Json?
+  interests   Json?                      // e.g. { newsletter: true, events: false, insights: true, careers: false }
   audience    String?
   locale      String                     @default("en")
   source      String?
   status      NewsletterSubscriberStatus @default(PENDING)
   confirmedAt DateTime?
+  unsubscribedAt DateTime?
+  unsubscribeToken String?              // Single-click unsubscribe token (HMAC of email + secret)
   createdAt   DateTime                   @default(now())
   updatedAt   DateTime                   @updatedAt
   @@index([status, createdAt])
+  @@index([email])
+  @@index([unsubscribeToken])
 }
 
 // Readiness self-assessment question bank. Platform-level content.
@@ -358,4 +365,42 @@ model DiagnosticResult {
   createdAt    DateTime @default(now())
   updatedAt    DateTime @updatedAt
   @@index([sessionId])
+}
+
+enum DataRequestType {
+  ACCESS
+  RECTIFICATION
+  ERASURE
+  RESTRICTION
+  PORTABILITY
+  OBJECTION
+  WITHDRAW_CONSENT
+}
+
+enum DataRequestStatus {
+  PENDING
+  IN_PROGRESS
+  COMPLETED
+  REJECTED
+}
+
+// Data subject requests (GDPR/PDPL). Platform-level, not tenant-scoped.
+model DataRequest {
+  id                String           @id @default(cuid())
+  type              DataRequestType
+  email             String
+  name              String?
+  details           String?
+  status            DataRequestStatus @default(PENDING)
+  verificationToken String           @unique
+  verifiedAt        DateTime?
+  response          String?
+  workspaceId       String
+  workspace         Workspace        @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  createdAt         DateTime         @default(now())
+  updatedAt         DateTime         @updatedAt
+  @@index([workspaceId, status])
+  @@index([workspaceId, createdAt])
+  @@index([email])
+  @@index([verificationToken])
 }
