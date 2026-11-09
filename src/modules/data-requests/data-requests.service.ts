@@ -3,6 +3,7 @@ import { Prisma } from '../../generated/prisma/client.js'
 import { prisma } from '../../db/prisma.js'
 import { AppError } from '../../modules/errors.js'
 import { sendEmail } from '../../modules/email/email.service.js'
+import { config } from '../../config/config.js'
 import type { DataRequestType, DataRequestStatus } from '../../generated/prisma/enums.js'
 
 export interface DataRequestInput {
@@ -74,7 +75,7 @@ function getRequestTypeLabel(type: DataRequestType): string {
 
 export async function createDataRequest(input: DataRequestInput): Promise<DataRequestWithWorkspace> {
   const verificationToken = randomUUID()
-  const verificationUrl = `${process.env.FRONTEND_ORIGIN || 'http://localhost:8443'}/data-request/verify?token=${verificationToken}`
+  const verificationUrl = `${config.CORS_ORIGINS[0] ?? 'http://localhost:8443'}/data-request/verify?token=${verificationToken}`
 
   const workspace = await prisma.workspace.findFirst({
     where: { slug: 'terramorph' }
@@ -226,6 +227,12 @@ export async function verifyDataRequest(token: string): Promise<{ id: string; em
     throw new AppError(400, 'This request has already been verified', 'ALREADY_VERIFIED')
   }
 
+  const createdAt = new Date(request.createdAt)
+  const now = new Date()
+  if (now.getTime() - createdAt.getTime() > 24 * 60 * 60 * 1000) {
+    throw new AppError(410, 'Verification link has expired', 'VERIFICATION_EXPIRED')
+  }
+
   const updated = await prisma.dataRequest.update({
     where: { id: request.id },
     data: {
@@ -319,8 +326,15 @@ export async function exportDataRequest(id: string, workspaceId: string) {
     select: { id: true, kind: true, status: true, email: true, name: true, createdAt: true },
   })
 
+  // createdById on ContentItem stores a user ID, not an email — resolve the
+  // user first so we export their content items rather than returning empty.
+  const user = await prisma.user.findUnique({
+    where: { email: request.email },
+    select: { id: true },
+  })
+
   const contentItems = await prisma.contentItem.findMany({
-    where: { createdById: request.email },
+    where: { createdById: user?.id },
     select: { id: true, kind: true, status: true, title: true, createdAt: true },
   })
 

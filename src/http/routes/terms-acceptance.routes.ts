@@ -34,8 +34,10 @@ export async function registerTermsAcceptanceRoutes(app: FastifyInstance) {
       email: data.email,
       privacyVersion: data.privacyVersion,
       termsVersion: data.termsVersion,
-      ipAddress: data.ipAddress,
-      userAgent: data.userAgent,
+      // Derive connection metadata server-side; never trust client-supplied
+      // values for audit/reliability purposes.
+      ipAddress: request.ip ?? undefined,
+      userAgent: request.headers['user-agent'],
       source: data.source,
     }
 

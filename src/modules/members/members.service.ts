@@ -2,6 +2,8 @@ import { prisma } from '../../db/prisma.js'
 import { AppError } from '../errors.js'
 import { hashPassword } from '../../security/passwords.js'
 import { randomBytes } from 'node:crypto'
+import { sendEmail } from '../../modules/email/email.service.js'
+import { config } from '../../config/config.js'
 
 export const MEMBER_ROLES = ['admin', 'lead', 'member'] as const
 export type MemberRole = (typeof MEMBER_ROLES)[number]
@@ -260,7 +262,7 @@ export async function inviteMember(input: {
     }
   }
 
-  return prisma.$transaction(async (tx) => {
+  const result = await prisma.$transaction(async (tx) => {
     const membership = await tx.workspaceMember.create({
       data: { workspaceId: input.workspaceId, userId: user.id, role: input.role },
       select: { role: true, user: { select: { id: true, name: true, email: true } } },
@@ -276,4 +278,27 @@ export async function inviteMember(input: {
     })
     return { ...membership, tempPassword }
   })
+
+  // Send the temporary password by email when email delivery is enabled.
+  // Non-blocking: the invite is recorded even if the email fails to send.
+  if (tempPassword && config.EMAIL_ENABLED) {
+    void sendEmail({
+      to: input.email,
+      subject: 'You have been invited to TerraMorph',
+      text: `
+        Hello ${input.name},
+
+        You have been invited to join the TerraMorph workspace as a ${input.role}.
+
+        Your temporary password: ${tempPassword}
+        Please sign in and change your password at your earliest convenience.
+
+        If you did not expect this invitation, you can safely ignore this email.
+      `,
+    }).catch(() => {
+      /* non-blocking */
+    })
+  }
+
+  return result
 }

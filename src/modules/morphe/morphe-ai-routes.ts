@@ -10,6 +10,7 @@
 
 import type { FastifyInstance } from "fastify";
 import { z } from "zod";
+import { requireAuth } from '../../http/middleware/requireAuth.js';
 
 const MORPHE_AI_URL = process.env.MORPHE_AI_SERVICE_URL || 'http://127.0.0.1:8009';
 
@@ -34,7 +35,13 @@ const searchBodySchema = z
   })
   .strict();
 
-export async function registerMorpheAiRoutes(fastify: FastifyInstance) {  // Health check
+export async function registerMorpheAiRoutes(fastify: FastifyInstance) {
+  // All Morphe AI routes require an authenticated session. They are not used by
+  // the public chat widget (/api/v1/morphe/chat) and proxy to an internal
+  // Python service, so they must not be open to unauthenticated callers.
+  fastify.addHook('onRequest', requireAuth);
+
+  // Health check
   fastify.get("/api/v1/morphe-ai/health", async (_request, reply) => {
     try {
       const res = await fetch(`${MORPHE_AI_URL}/health`, {

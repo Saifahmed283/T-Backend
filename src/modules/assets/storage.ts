@@ -4,23 +4,16 @@ import { AppError } from '../errors.js'
 
 export { ALLOWED_MIME_TYPES }
 
-// Allowed MIME types for media uploads
+// Allowed MIME types for media uploads. Kept deliberately small: the media
+// library is for website imagery and documents, not arbitrary files. Must stay
+// in sync with assets.service.ts ALLOWED_MIME_TYPES.
 const ALLOWED_MIME_TYPES = new Set([
-  'image/jpeg',
   'image/png',
-  'image/gif',
+  'image/jpeg',
   'image/webp',
-  'image/avif',
+  'image/gif',
   'image/svg+xml',
   'application/pdf',
-  'text/plain',
-  'text/csv',
-  'application/msword',
-  'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
-  'application/vnd.ms-excel',
-  'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
-  'application/zip',
-  'application/x-zip-compressed',
 ])
 
 function validateMimeType(mimeType: string): void {
