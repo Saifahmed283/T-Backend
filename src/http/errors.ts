@@ -43,6 +43,26 @@ export function errorLogFields(error: unknown, request: FastifyRequest, statusCo
   }
 }
 
+/**
+ * Structured fields for a request that matched no route.
+ *
+ * Without this, a 404 is only visible as `{ code: 'NOT_FOUND', requestId }` in
+ * the response and as a bare request id in access logs, so an unmatched path
+ * cannot be traced back to the caller. The query string is dropped because it
+ * may carry tokens; the path alone identifies the route.
+ */
+export function notFoundLogFields(request: FastifyRequest) {
+  const path = request.url.split('?')[0]
+  return {
+    event: 'http.not_found',
+    requestId: request.id,
+    method: request.method,
+    path,
+    ...(typeof request.headers.host === 'string' ? { host: request.headers.host } : {}),
+    ...(typeof request.headers['user-agent'] === 'string' ? { userAgent: request.headers['user-agent'] } : {}),
+  }
+}
+
 /** Structured fields for process-level failures, safe to serialise to stderr. */
 export function fatalLogFields(event: 'uncaught_exception' | 'unhandled_rejection', error: unknown) {
   return { event, ...errorDetails(error) }
@@ -62,6 +82,11 @@ export function registerErrorHandler(app: FastifyInstance) {
   // Unknown routes must use the same { error: { code, message } } envelope as
   // every other failure, instead of Fastify's default shape.
   app.setNotFoundHandler((request: FastifyRequest, reply: FastifyReply) => {
+    const fields = notFoundLogFields(request)
+    // The path is repeated in the message because some hosting log viewers
+    // render only `msg`, which made a bare 404 impossible to attribute. The
+    // fields keep it queryable in structured logs.
+    request.log.warn(fields, `route not found: ${fields.method} ${fields.path}`)
     return reply
       .status(404)
       .send(envelope(request.id, 'NOT_FOUND', 'Route not found'))

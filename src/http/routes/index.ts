@@ -44,5 +44,8 @@ export async function registerRoutes(app: FastifyInstance) {
   await registerMarketingConsentRoutes(app)
   await registerTermsAcceptanceRoutes(app)
   await registerMorpheRoutes(app)
-  await registerMorpheAiRoutes(app)
+  // Registered as its own plugin, not called with the shared instance: the
+  // plugin adds an onRequest auth hook, and calling it directly would apply
+  // that hook to every sibling route (health, public content, Morphe chat).
+  await app.register(registerMorpheAiRoutes)
 }
