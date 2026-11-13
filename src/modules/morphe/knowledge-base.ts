@@ -737,11 +737,31 @@ export function findKnowledgeAnswer(text: string, lang: Lang): KnowledgeEntry | 
         hits += entry.triggers[0] === t ? 2 : 1
       }
     }
+    // Boost exact-ish phrase matches: if multiple words of the query appear in
+    // a single trigger, that's a stronger signal than scattered single words.
+    const words = lower.split(/\s+/).filter((w) => w.length > 2)
+    for (const t of entry.triggers) {
+      const tl = t.toLowerCase()
+      const phraseHits = words.filter((w) => tl.includes(w)).length
+      if (phraseHits >= 2) hits += phraseHits
+    }
     if (hits > bestScore) {
       bestScore = hits
       best = entry
     }
   }
 
+  // Teramorph-only: only answer from our own knowledge base. Never fall back to
+  // an external web search or a third-party model. If nothing matches, return null
+  // so the flow engine handles it as a normal conversation turn.
   return bestScore > 0 ? best : null
+}
+
+/**
+ * Reports whether a query would be answered from the Teramorph knowledge base.
+ * Used by the frontend to show a "Teramorph-only search" indicator and to decide
+ * whether to offer the web-search toggle at all.
+ */
+export function isTeramorphQuestion(text: string): boolean {
+  return findKnowledgeAnswer(text, "en") !== null
 }
