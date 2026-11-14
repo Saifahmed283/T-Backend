@@ -16,7 +16,8 @@ import { registerMorpheAiRoutes } from '../../modules/morphe/morphe-ai-routes.js
 
 export async function registerRoutes(app: FastifyInstance) {
   // Root landing page: tells callers the backend is healthy and points them at
-  // the real API surface under /api/v1.
+  // the real API surface under /api/v1. Overrides the global helmet CSP so the
+  // page's inline styles can render; inline scripts are intentionally omitted.
   app.get(
     '/',
     { config: { rateLimit: { max: 60, timeWindow: '15 minutes' } } },
@@ -107,12 +108,19 @@ export async function registerRoutes(app: FastifyInstance) {
     <div class="api">
       <span class="path">GET <strong>/api/v1</strong></span>
     </div>
-    <div class="footer">TerraMorph &middot; <span id="year"></span></div>
+    <div class="footer">TerraMorph &middot; 2026</div>
   </div>
-  <script>document.getElementById('year').textContent = new Date().getFullYear();</script>
 </body>
 </html>
       `.trim();
+      // Helmet sets a strict CSP in onRequest; override it for this HTML page so
+      // the inline styles render. No inline scripts are used, so script-src stays
+      // restrictive. The Cloudflare beacon (injected by hosting at the edge) is
+      // blocked by script-src 'self' — that's a hosting concern, not the API.
+      reply.header(
+        'content-security-policy',
+        "default-src 'self'; style-src 'self' 'unsafe-inline'; script-src 'self'; img-src 'self' data:; connect-src 'self'; frame-ancestors 'none'; base-uri 'self'; form-action 'self';",
+      );
       return reply.type('text/html').send(html);
     },
   )
