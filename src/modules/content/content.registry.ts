@@ -30,31 +30,6 @@ const text = (key: string, label: string, localized = false): FieldDefinition =>
 
 export const collections: Collection[] = [
   {
-    id: 'assignments',
-    name: 'Assignments',
-    singular: 'Assignment',
-    description: 'Client mandates and delivery records',
-    group: 'Evidence',
-    fields: [
-      title,
-      { key: 'client', label: 'Client', required: true },
-      { key: 'clientAr', label: 'Client (Arabic)' },
-      { key: 'clientType', label: 'Client type' },
-      { key: 'year', label: 'Year', type: 'number' },
-      { key: 'role', label: 'Role' },
-      { key: 'geography', label: 'Geography' },
-      { key: 'geographyAr', label: 'Geography (Arabic)' },
-      { key: 'sector', label: 'Sector' },
-      { key: 'sectorAr', label: 'Sector (Arabic)' },
-      { key: 'domain', label: 'LDIA domain' },
-      { key: 'size', label: 'Public size band', hint: 'Shown on the public ledger, e.g. USD 100–250k.' },
-      { key: 'valueBand', label: 'Value band', hint: 'Internal only. Not shown on the public page.', internal: true },
-      description,
-      { key: 'reference', label: 'Reference' },
-      { key: 'verification', label: 'Verification URL', type: 'url' },
-    ],
-  },
-  {
     id: 'cases',
     name: 'Case Studies',
     singular: 'Case Study',
@@ -233,7 +208,6 @@ export function collectionById(id: string): Collection | undefined {
 // Collection id -> Prisma ContentKind. The two are deliberately separate so the
 // URL/editor vocabulary can change without rewriting stored rows.
 export const kindByCollectionId: Record<string, string> = {
-  assignments: 'ASSIGNMENT',
   cases: 'CASE',
   publications: 'PUBLICATION',
   instruments: 'INSTRUMENT',

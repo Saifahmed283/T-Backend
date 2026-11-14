@@ -277,7 +277,7 @@ We bring:
     triggers: ["development partner", "donor", "funding", "investor", "funder", "framework", "ledger"],
     en: `TerraMorph for development partners
 
-Registered, framework-eligible delivery with a full, verifiable assignment ledger.
+Registered, framework-eligible delivery with verified case evidence and impact data.
 
 • 58 ledger entries · 94% repeat or referred
 • ISO 37001/27001/9001 certified
@@ -308,7 +308,7 @@ Open roles:
 • Learning associate
 
 Internships: AAST (paid, mentored)
-Expert network: register once, matched to live assignments`,
+Expert network: register once, matched to live opportunities`,
     ar: `الوظائف في شركة تيرامورف
 
 نسمّي أفرادنا — كل وظيفة تدرج نطاقًا راتبيًا، وتجري مقابلتك مع الأشخاص الذين ستعمل معهم بالفعل.
