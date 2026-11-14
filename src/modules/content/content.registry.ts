@@ -53,6 +53,18 @@ export const collections: Collection[] = [
     ],
   },
   {
+    id: 'assignments',
+    name: 'Assignments',
+    singular: 'Assignment',
+    description: 'Client engagements and procurement opportunities',
+    group: 'Evidence',
+    fields: [
+      title,
+      { key: 'client', label: 'Client', required: true },
+      { key: 'valueBand', label: 'Value band', internal: true },
+    ],
+  },
+  {
     id: 'publications',
     name: 'Publications',
     singular: 'Publication',
@@ -208,6 +220,7 @@ export function collectionById(id: string): Collection | undefined {
 // Collection id -> Prisma ContentKind. The two are deliberately separate so the
 // URL/editor vocabulary can change without rewriting stored rows.
 export const kindByCollectionId: Record<string, string> = {
+  assignments: 'ASSIGNMENT',
   cases: 'CASE',
   publications: 'PUBLICATION',
   instruments: 'INSTRUMENT',
