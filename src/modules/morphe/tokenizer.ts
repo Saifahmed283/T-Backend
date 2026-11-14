@@ -5,7 +5,6 @@
 const PAD = "<pad>";
 const UNK = "unknown";
 const CLS = "<cls>";
-const SPECIAL_TOKENS = [PAD, UNK, CLS];
 
 function basicTokenize(text: string): string[] {
   const lowered = text.toLowerCase().trim();

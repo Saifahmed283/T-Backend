@@ -724,7 +724,7 @@ Certified trainers listed on a public register`,
   },
 ]
 
-export function findKnowledgeAnswer(text: string, lang: Lang): KnowledgeEntry | null {
+export function findKnowledgeAnswer(text: string, _lang: Lang): KnowledgeEntry | null {
   const lower = text.toLowerCase()
   let best: KnowledgeEntry | null = null
   let bestScore = 0

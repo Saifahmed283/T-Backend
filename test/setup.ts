@@ -2,6 +2,7 @@ import 'dotenv/config'
 import { execFileSync } from 'node:child_process'
 import { createRequire } from 'node:module'
 import { dirname, join } from 'node:path'
+import { truncateAll } from './db.js'
 
 const require = createRequire(import.meta.url)
 const TEST_DB = 'terramorph_test'
@@ -34,6 +35,18 @@ export async function setup() {
 }
 
 export async function teardown() {
-  const { prisma } = await import('../src/db/prisma.js')
-  await prisma.$disconnect()
+  // A fresh client: the suite's own client is disconnected by the test files'
+  // afterAll hooks, and a disconnected client cannot truncate. Errors are not
+  // swallowed here — a failed reset must fail the run, not poison the next one.
+  const { PrismaClient } = await import('../src/generated/prisma/client.js')
+  const { PrismaPg } = await import('@prisma/adapter-pg')
+  const directUrl = process.env.DIRECT_URL
+  if (!directUrl) throw new Error('DIRECT_URL is required to truncate the test database')
+
+  const prisma = new PrismaClient({ adapter: new PrismaPg({ connectionString: directUrl }) })
+  try {
+    await truncateAll(prisma)
+  } finally {
+    await prisma.$disconnect()
+  }
 }

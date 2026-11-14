@@ -52,8 +52,10 @@ const schema = z.object({
   // rendered message to the server log; `memory` keeps it in-process for tests.
   // A real transactional provider plugs in behind the same sendEmail() call.
   EMAIL_ENABLED: booleanish.optional(),
-  EMAIL_PROVIDER: z.enum(['log', 'memory']).default('log'),
+  EMAIL_PROVIDER: z.enum(['log', 'memory', 'resend']).default('log'),
   EMAIL_FROM: z.string().min(3).default('TerraMorph <notifications@askterramorph.com>'),
+  // Resend API key. Only consulted when EMAIL_PROVIDER=resend.
+  RESEND_API_KEY: z.string().min(20).optional(),
   // Where new site submissions are announced. When unset, admin notices are
   // skipped (receipts to the submitter still send when email is enabled).
   ADMIN_NOTIFICATION_EMAIL: z.string().email().optional(),
@@ -118,7 +120,14 @@ export const config = {
   // Caching stays off in the integration suite so a read in one test cannot
   // observe a row another test has just changed.
   CACHE_ENABLED: parsed.CACHE_ENABLED ?? !isTest,
-  EMAIL_ENABLED: parsed.EMAIL_ENABLED ?? false,
+  // Email is honest about its capability: disabled unless a provider with
+  // usable credentials is configured. `log`/`memory` are transports (no
+  // credentials), so an explicit `EMAIL_ENABLED` still gates them — tests set
+  // it. `resend` needs `RESEND_API_KEY`; without it email is a no-op, not an
+  // error.
+  EMAIL_ENABLED:
+    parsed.EMAIL_ENABLED ??
+    (parsed.EMAIL_PROVIDER === 'resend' ? Boolean(parsed.RESEND_API_KEY) : false),
   PASSWORD_RESET_TTL_MS: parsed.PASSWORD_RESET_TTL_MINUTES * 60 * 1000,
   isProduction,
   isTest,

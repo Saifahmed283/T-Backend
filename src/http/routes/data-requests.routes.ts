@@ -52,7 +52,7 @@ export async function registerDataRequestRoutes(app: FastifyInstance) {
     const data = createRequestSchema.parse(request.body)
 
     const input: DataRequestInput = {
-      type: data.type as any,
+      type: data.type as DataRequestInput['type'],
       email: data.email,
       name: data.name,
       details: data.details,

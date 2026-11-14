@@ -3,8 +3,7 @@
  * Deterministic state machine driven by a YAML-like config, with contextual
  * intent masking so the classifier only ever chooses among valid intents.
  */
-import type { Tokenizer } from "./tokenizer.js";
-import type { MorpheClassifier, MorphePrediction } from "./classifier.js";
+import type { MorpheClassifier } from "./classifier.js";
 
 export type Lang = "en" | "ar";
 
@@ -55,7 +54,7 @@ export interface FlowStepResult {
 }
 
 const EMAIL_RE = /[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}/;
-const PHONE_RE = /(\+?\d[\d \-]{7,}\d)/;
+const PHONE_RE = /(\+?\d[\d -]{7,}\d)/;
 
 // Specific question intents resolve to a specific page, on top of
 // whatever a state's own "suggest_links" already offers.
@@ -155,7 +154,6 @@ export class FlowEngine {
       if (!nextState) throw new Error(`Unknown flow state: ${nextStateName}`);
       // Replace state reference for auto-advance below
       // (we reassign stateName and fall through)
-      // eslint-disable-next-line no-param-reassign
       // state = nextState; // not needed, we use session.state below
     }
 

@@ -7,7 +7,6 @@
  * [CLS] pooled -> linear classifier head.
  * Inference mode: dropout is disabled.
  */
-import type { Tokenizer } from "./tokenizer.js";
 
 type LayerNormParams = {
   weight: number[];
@@ -115,9 +114,9 @@ function multiHeadSelfAttention(
   const dModel = x[0].length;
   const headDim = dModel / nHeads;
 
-  const Q = matMat(params.qWeight, x).map((row, i) => row.map((v, j) => v + params.qBias[j]));
-  const K = matMat(params.kWeight, x).map((row, i) => row.map((v, j) => v + params.kBias[j]));
-  const V = matMat(params.vWeight, x).map((row, i) => row.map((v, j) => v + params.vBias[j]));
+  const Q = matMat(params.qWeight, x).map((row) => row.map((v, j) => v + params.qBias[j]));
+  const K = matMat(params.kWeight, x).map((row) => row.map((v, j) => v + params.kBias[j]));
+  const V = matMat(params.vWeight, x).map((row) => row.map((v, j) => v + params.vBias[j]));
 
   const splitHeads = (t: number[][]): number[][][] =>
     t.map((row) => {
@@ -172,7 +171,7 @@ function multiHeadSelfAttention(
     concatenated.push(row);
   }
 
-  return matMat(params.outWeight, concatenated).map((row, i) =>
+  return matMat(params.outWeight, concatenated).map((row) =>
     row.map((v, j) => v + params.outBias[j]),
   );
 }
@@ -207,7 +206,7 @@ export class MorpheEncoder {
    * Returns logits: [batch, numIntents].
    */
   forward(inputIds: number[][], attentionMask: number[][]): number[][] {
-    const { dModel, maxLen } = this.config;
+    const { dModel } = this.config;
     const batch = inputIds.length;
     const seqLen = inputIds[0].length;
 

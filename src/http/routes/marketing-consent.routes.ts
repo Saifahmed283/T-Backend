@@ -1,12 +1,10 @@
 import type { FastifyInstance } from 'fastify'
 import { z } from 'zod'
-import { AppError } from '../../modules/errors.js'
 import {
   recordMarketingConsent,
   unsubscribeMarketing,
   getMarketingConsent,
   sendMarketingConfirmationEmail,
-  type MarketingList,
 } from '../../modules/marketing-consent/marketing-consent.service.js'
 import { config } from '../../config/config.js'
 
