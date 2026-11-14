@@ -42,6 +42,7 @@ export async function registerSubmissionRoutes(app: FastifyInstance) {
             message: body.message ?? null,
             source: body.source ?? null,
             payload: body.payload ?? null,
+            locale: body.locale,
           },
           request.log,
         ),

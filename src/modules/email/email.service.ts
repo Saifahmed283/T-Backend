@@ -79,6 +79,10 @@ export async function sendEmail(message: EmailMessage, logger?: EmailLogger): Pr
         )
         break
       }
+      case 'resend': {
+        await sendViaResend(message, logger)
+        break
+      }
     }
     if (config.EMAIL_PROVIDER !== 'log') {
       logger?.info(
@@ -100,5 +104,41 @@ export async function sendEmail(message: EmailMessage, logger?: EmailLogger): Pr
       'email delivery failed',
     )
     return { sent: false, reason: 'provider_error' }
+  }
+}
+
+/* Resend over plain HTTPS fetch — no SDK dependency. Never throws; failures
+   surface as `provider_error` so a mail outage never breaks the caller. */
+async function sendViaResend(message: EmailMessage, logger?: EmailLogger): Promise<void> {
+  const apiKey = config.RESEND_API_KEY
+  if (!apiKey) {
+    logger?.warn(
+      { event: 'email.skipped', reason: 'missing_key', to: message.to, kind: message.kind },
+      'resend configured but RESEND_API_KEY is unset',
+    )
+    return
+  }
+
+  const body = {
+    from: config.EMAIL_FROM,
+    to: message.to,
+    subject: message.subject,
+    ...(message.text ? { text: message.text } : {}),
+    ...(message.html ? { html: message.html } : {}),
+    ...(message.listUnsubscribe ? { headers: { 'List-Unsubscribe': message.listUnsubscribe } } : {}),
+  }
+
+  const response = await fetch('https://api.resend.com/emails', {
+    method: 'POST',
+    headers: {
+      Authorization: `Bearer ${apiKey}`,
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify(body),
+  })
+
+  if (!response.ok) {
+    const text = await response.text().catch(() => '')
+    throw new Error(`resend HTTP ${response.status}: ${text.slice(0, 500)}`)
   }
 }

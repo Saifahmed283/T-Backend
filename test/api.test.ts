@@ -6,6 +6,7 @@ import { config } from '../src/config/config.js'
 import { hashPassword } from '../src/security/passwords.js'
 import { publishDueContent } from '../src/modules/content/scheduler.js'
 import { clearEmailOutbox, getEmailOutbox } from '../src/modules/email/email.service.js'
+import { truncateAll } from './db.js'
 
 const PASSWORD = 'Integration-Password-1'
 
@@ -67,15 +68,7 @@ async function seedFixtures() {
 }
 
 async function clearFixtures() {
-  await prisma.passwordResetToken.deleteMany()
-  await prisma.session.deleteMany()
-  await prisma.activityLog.deleteMany()
-  await prisma.assignment.deleteMany()
-  await prisma.expert.deleteMany()
-  await prisma.submission.deleteMany()
-  await prisma.workspaceMember.deleteMany()
-  await prisma.workspace.deleteMany()
-  await prisma.user.deleteMany()
+  await truncateAll(prisma)
 }
 
 async function login(email: string): Promise<string> {
@@ -96,8 +89,9 @@ beforeAll(async () => {
 })
 
 afterAll(async () => {
-  await clearFixtures()
+  // Close the app first so no queued job can write after the reset.
   await app.close()
+  await clearFixtures()
   await prisma.$disconnect()
 })
 

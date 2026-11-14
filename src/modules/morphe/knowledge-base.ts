@@ -277,7 +277,7 @@ We bring:
     triggers: ["development partner", "donor", "funding", "investor", "funder", "framework", "ledger"],
     en: `TerraMorph for development partners
 
-Registered, framework-eligible delivery with a full, verifiable assignment ledger.
+Registered, framework-eligible delivery with verified case evidence and impact data.
 
 • 58 ledger entries · 94% repeat or referred
 • ISO 37001/27001/9001 certified
@@ -308,7 +308,7 @@ Open roles:
 • Learning associate
 
 Internships: AAST (paid, mentored)
-Expert network: register once, matched to live assignments`,
+Expert network: register once, matched to live opportunities`,
     ar: `الوظائف في شركة تيرامورف
 
 نسمّي أفرادنا — كل وظيفة تدرج نطاقًا راتبيًا، وتجري مقابلتك مع الأشخاص الذين ستعمل معهم بالفعل.
@@ -724,7 +724,7 @@ Certified trainers listed on a public register`,
   },
 ]
 
-export function findKnowledgeAnswer(text: string, lang: Lang): KnowledgeEntry | null {
+export function findKnowledgeAnswer(text: string, _lang: Lang): KnowledgeEntry | null {
   const lower = text.toLowerCase()
   let best: KnowledgeEntry | null = null
   let bestScore = 0
@@ -737,11 +737,31 @@ export function findKnowledgeAnswer(text: string, lang: Lang): KnowledgeEntry | 
         hits += entry.triggers[0] === t ? 2 : 1
       }
     }
+    // Boost exact-ish phrase matches: if multiple words of the query appear in
+    // a single trigger, that's a stronger signal than scattered single words.
+    const words = lower.split(/\s+/).filter((w) => w.length > 2)
+    for (const t of entry.triggers) {
+      const tl = t.toLowerCase()
+      const phraseHits = words.filter((w) => tl.includes(w)).length
+      if (phraseHits >= 2) hits += phraseHits
+    }
     if (hits > bestScore) {
       bestScore = hits
       best = entry
     }
   }
 
+  // Teramorph-only: only answer from our own knowledge base. Never fall back to
+  // an external web search or a third-party model. If nothing matches, return null
+  // so the flow engine handles it as a normal conversation turn.
   return bestScore > 0 ? best : null
+}
+
+/**
+ * Reports whether a query would be answered from the Teramorph knowledge base.
+ * Used by the frontend to show a "Teramorph-only search" indicator and to decide
+ * whether to offer the web-search toggle at all.
+ */
+export function isTeramorphQuestion(text: string): boolean {
+  return findKnowledgeAnswer(text, "en") !== null
 }

@@ -3,10 +3,9 @@
  * persistence. Persisted leads use the existing Submission table so they are
  * automatically covered by the Data Subject Request pipeline (access/delete/export).
  */
-import { prisma } from "../../db/prisma.js";
 import { createSubmission } from "../submissions/submissions.service.js";
 import { createClassifier } from "./classifier.js";
-import { findKnowledgeAnswer, KNOWLEDGE_BASE } from "./knowledge-base.js";
+import { findKnowledgeAnswer } from "./knowledge-base.js";
 import { FlowEngine } from "./flow.js";
 import { morpheSessions } from "./session.js";
 import type { FlowSlot } from "./flow.js";

@@ -1,6 +1,6 @@
 import type { FastifyRequest } from 'fastify'
 import { describe, expect, it } from 'vitest'
-import { errorLogFields, fatalLogFields } from './errors.js'
+import { errorLogFields, fatalLogFields, notFoundLogFields } from './errors.js'
 
 describe('structured error logging', () => {
   it('logs the route pattern and request id but never request secrets', () => {
@@ -35,6 +35,27 @@ describe('structured error logging', () => {
     for (const secret of ['body-secret', 'header-secret', 'cookie-secret', 'query-secret', 'url-secret']) {
       expect(serialised).not.toContain(secret)
     }
+  })
+
+  it('identifies an unmatched request without logging its query string', () => {
+    const request = {
+      id: 'req-1',
+      method: 'GET',
+      url: '/api/v1/morphe/chat?token=query-secret',
+      headers: { host: 'api.askterramorph.com', 'user-agent': 'uptime-monitor/1.0' },
+    } as unknown as FastifyRequest
+
+    const fields = notFoundLogFields(request)
+
+    expect(fields).toMatchObject({
+      event: 'http.not_found',
+      requestId: 'req-1',
+      method: 'GET',
+      path: '/api/v1/morphe/chat',
+      host: 'api.askterramorph.com',
+      userAgent: 'uptime-monitor/1.0',
+    })
+    expect(JSON.stringify(fields)).not.toContain('query-secret')
   })
 
   it('marks requests outside a matched route', () => {

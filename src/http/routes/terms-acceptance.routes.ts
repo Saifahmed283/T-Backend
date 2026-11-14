@@ -1,6 +1,5 @@
 import type { FastifyInstance } from 'fastify'
 import { z } from 'zod'
-import { AppError } from '../../modules/errors.js'
 import {
   recordTermsAcceptance,
   getTermsAcceptance,

@@ -1,5 +1,4 @@
 import { prisma } from '../../db/prisma.js'
-import { AppError } from '../../modules/errors.js'
 
 /** Current policy versions. Bump these when policies change materially. */
 export const PRIVACY_POLICY_VERSION = '1.0'

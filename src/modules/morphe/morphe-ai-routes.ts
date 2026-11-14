@@ -284,7 +284,7 @@ export async function registerMorpheAiRoutes(fastify: FastifyInstance) {
   fastify.delete("/api/v1/morphe-ai/session/:id", async (request, reply) => {
     try {
       const params = request.params as { id: string };
-      const res = await fetch(`${MORPHE_AI_URL}/session/${params.id}`, {
+      await fetch(`${MORPHE_AI_URL}/session/${params.id}`, {
         method: "DELETE",
         signal: AbortSignal.timeout(5_000),
       });

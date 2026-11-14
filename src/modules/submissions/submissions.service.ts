@@ -9,6 +9,7 @@ export type CreateSubmissionInput = {
   message?: string
   source?: string
   payload?: Record<string, unknown>
+  locale?: 'en' | 'ar'
 }
 
 export async function createSubmission(input: CreateSubmissionInput) {

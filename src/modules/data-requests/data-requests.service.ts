@@ -1,5 +1,5 @@
 import { randomUUID } from 'node:crypto'
-import { Prisma } from '../../generated/prisma/client.js'
+import type { Prisma } from '../../generated/prisma/client.js'
 import { prisma } from '../../db/prisma.js'
 import { AppError } from '../../modules/errors.js'
 import { sendEmail } from '../../modules/email/email.service.js'
@@ -122,7 +122,7 @@ export async function listDataRequests(input: DataRequestListInput): Promise<Pag
 
   const where: Prisma.DataRequestWhereInput = {
     workspaceId: input.workspaceId,
-    ...(input.status && { status: input.status as any }),
+    ...(input.status && { status: input.status as DataRequestStatus }),
     ...(input.search && {
       OR: [
         { email: { contains: input.search, mode: 'insensitive' } },
@@ -233,7 +233,7 @@ export async function verifyDataRequest(token: string): Promise<{ id: string; em
     throw new AppError(410, 'Verification link has expired', 'VERIFICATION_EXPIRED')
   }
 
-  const updated = await prisma.dataRequest.update({
+  await prisma.dataRequest.update({
     where: { id: request.id },
     data: {
       verifiedAt: new Date(),

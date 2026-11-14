@@ -1,5 +1,4 @@
-import { randomUUID } from 'node:crypto'
-import { Prisma } from '../../generated/prisma/client.js'
+import type { Prisma } from '../../generated/prisma/client.js'
 import { prisma } from '../../db/prisma.js'
 import { AppError } from '../../modules/errors.js'
 import { sendEmail } from '../../modules/email/email.service.js'

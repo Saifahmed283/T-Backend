@@ -36,7 +36,8 @@ Feature configuration (all optional; defaults shown):
 | `TRUST_PROXY` | `true` in production | Trust `X-Forwarded-*` from the platform proxy. |
 | `RATE_LIMIT_MAX` / `LOGIN_RATE_LIMIT_MAX` | `100` / `10` per 15 min | Global and authentication-specific limits. |
 | `SCHEDULER_ENABLED` / `SCHEDULER_INTERVAL_MS` | on outside tests / `60000` | In-process scheduled publishing. |
-| `EMAIL_ENABLED` / `EMAIL_PROVIDER` | `false` / `log` | Outbound mail. `memory` is test-only and rejected in production. |
+| `EMAIL_ENABLED` / `EMAIL_PROVIDER` | `false` / `log` | Outbound mail. `EMAIL_ENABLED` is credential-computed: true only when a provider with usable credentials is configured (`resend` requires `RESEND_API_KEY`; `log`/`memory` need an explicit opt-in). `memory` is test-only and rejected in production. |
+| `RESEND_API_KEY` | unset | Resend API key, required when `EMAIL_PROVIDER=resend`. Mail is sent over HTTPS `fetch` (no SDK); send failures are logged and never fail the triggering request. |
 | `EMAIL_FROM` | `TerraMorph <notifications@askterramorph.com>` | Sender address. |
 | `ADMIN_NOTIFICATION_EMAIL` | unset | Destination for new-submission notices; notices are skipped when unset. |
 | `PASSWORD_RESET_TTL_MINUTES` | `30` | Single-use reset-link lifetime. |
@@ -93,7 +94,7 @@ Passwords are hashed with scrypt. Login creates a random 256-bit token, stores *
 
 ## Email
 
-`EMAIL_ENABLED` defaults to `false`, making `sendEmail()` a no-op that logs the skip. `EMAIL_PROVIDER=log` renders messages to the server log; `memory` keeps an in-process outbox for tests and is rejected in production. New submissions produce an admin notice and a submitter receipt when the relevant address is available. Notification failures never turn a recorded submission into a 5xx.
+`EMAIL_ENABLED` defaults to `false`, making `sendEmail()` a no-op that logs the skip. `EMAIL_PROVIDER=log` renders messages to the server log; `memory` keeps an in-process outbox for tests and is rejected in production. `EMAIL_PROVIDER=resend` sends over HTTPS `fetch` using `RESEND_API_KEY`. New submissions produce an admin notice (to `ADMIN_NOTIFICATION_EMAIL`) and a submitter receipt when the relevant address is available; `CONTRIBUTION` receipts are deliberately excluded. Notification failures never turn a recorded submission into a 5xx.
 
 A real transactional provider plugs in behind `sendEmail()` in `src/modules/email/email.service.ts`; the call sites do not need to change.
 

@@ -25,6 +25,9 @@ export const createSubmissionSchema = z
     message: z.string().trim().max(4000, 'Message must be 4,000 characters or fewer').optional(),
     source: z.string().trim().max(120).optional(),
     payload: z.record(z.string(), z.unknown()).optional(),
+    // Preferred language of the submitter, used for the receipt email. Defaults
+    // to English when absent or unrecognized.
+    locale: z.enum(['en', 'ar']).default('en'),
   })
   .strict()
   .superRefine((data, ctx) => {
