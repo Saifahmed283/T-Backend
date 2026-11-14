@@ -102,27 +102,29 @@ async function main() {
       await tx.$executeRawUnsafe(`GRANT INSERT, DELETE ON "Session" TO "${APP}"`)
       // resolveSession slides the idle window forward by stamping lastUsedAt.
       await tx.$executeRawUnsafe(`GRANT UPDATE ("lastUsedAt") ON "Session" TO "${APP}"`)
-      // Public site submissions are inserts; admins triage rows (status) and
-      // delete spam.
-      await tx.$executeRawUnsafe(`GRANT INSERT, UPDATE, DELETE ON "Submission" TO "${APP}"`)
+      // Public site submissions are inserts only; UPDATE and DELETE stay with
+      // the owner role so the runtime role cannot tamper with submitted rows.
+      await tx.$executeRawUnsafe(`GRANT INSERT ON "Submission" TO "${APP}"`)
       // Content edits append audit rows; they are never updated or deleted.
       await tx.$executeRawUnsafe(`GRANT INSERT ON "ActivityLog" TO "${APP}"`)
       // Reset links: issue, consume and invalidate. No UPDATE, so a stored
       // digest cannot be re-pointed at another user.
       await tx.$executeRawUnsafe(`GRANT INSERT, DELETE ON "PasswordResetToken" TO "${APP}"`)
       // Admins invite and remove members, promote/demote by rewriting the role
-      // column, and suspend/resume by rewriting suspendedAt.
-      await tx.$executeRawUnsafe(`GRANT INSERT, DELETE ON "WorkspaceMember" TO "${APP}"`)
+      // column, and suspend/resume by rewriting suspendedAt. INSERT is left to
+      // the owner role; the runtime role only removes and updates members.
+      await tx.$executeRawUnsafe(`GRANT DELETE ON "WorkspaceMember" TO "${APP}"`)
       await tx.$executeRawUnsafe(`GRANT UPDATE ("role", "suspendedAt") ON "WorkspaceMember" TO "${APP}"`)
       // Content workspace tables: full DML, updatedAt is written by @updatedAt.
       await tx.$executeRawUnsafe(`GRANT INSERT, UPDATE, DELETE ON ${CMS_TABLES.join(', ')} TO "${APP}"`)
-      // Invites create users; profile edits rewrite name/email; password change
-      // writes passwordHash; login lockout rewrites the attempt counters.
+      // Invites create users; password change writes passwordHash and Prisma's
+      // @updatedAt stamps updatedAt on every update. Email and name are not
+      // writable by the runtime role.
       // Prisma's @updatedAt also writes updatedAt on every update, so it is
       // required. No DELETE: removing a member never deletes the account.
       await tx.$executeRawUnsafe(`GRANT INSERT ON "User" TO "${APP}"`)
       await tx.$executeRawUnsafe(
-        `GRANT UPDATE ("name", "email", "passwordHash", "updatedAt", "failedLoginAttempts", "lockoutUntil") ON "User" TO "${APP}"`,
+        `GRANT UPDATE ("passwordHash", "updatedAt") ON "User" TO "${APP}"`,
       )
       await tx.$executeRawUnsafe(`GRANT USAGE ON SCHEMA public TO "${APP}"`)
 
